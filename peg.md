@@ -278,8 +278,6 @@ we’ll just return `null`.
 
 From here we’ll mostly work bottom-up.
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Names ###
 
 Names are used in two contexts:
@@ -291,15 +289,16 @@ In both cases,
 we basically just need the contents of the name.
 
     (in the metacircular compiler-compiler)
-    meta     <- '!' / '\'' / '<-' / '/' / '.' / '+' / '*' / '(' / ')' 
-              / ':' / '->'.
-    name     <- (!meta !sp char)+: chars -> (chars.join('')).
+    meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
+    name     <- c: namechar n: name -> (c + n) / namechar.
+    namechar <- !meta !sp char.
 
 In this case,
 we presume that the value produced by `char`
+(and thus the value produced by `namechar`)
 is the character it consumed,
 and that in the absence of an explicit result expression,
-the result of the whole parenthesized expression
+the result of the whole rule
 is that same character.
 This can be implemented, for example,
 by having a sequence return by default
@@ -307,6 +306,8 @@ the value of the last term in it.
 (I’m not sure that’s a good default,
 because it seems a little error-prone,
 but I’ll try it.)
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Nonterminals ###
 
