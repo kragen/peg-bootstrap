@@ -237,6 +237,7 @@ will be compiled into a function called `parse_term`,
 whose body will be the value computed by `choice`,
 bracketed by some startup and cleanup code,
 and therefore `choice` needs to evaluate to
+a string of
 zero or more valid JavaScript statements.
 
 These functions
@@ -307,8 +308,6 @@ the value of the last term in it.
 because it seems a little error-prone,
 but I’ll try it.)
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Nonterminals ###
 
 A reference to a nonterminal
@@ -316,9 +315,9 @@ is compiled as a call to its parsing function,
 passing in the current position.
 
     (in the metacircular compiler-compiler)
-    term <- negation / string / nonterminal / parenthesized.
-    nonterminal <- name: name _ -> (
-        ['  state = parse_', name, '(input, state.pos);\n'].join('')
+    term <- labeled / negation / string / nonterminal / parenthesized.
+    nonterminal <- n: name _ -> (
+        ['  state = parse_', n, '(input, state.pos);\n'].join('')
     ).
 
 This means we need a variable `state`
@@ -331,14 +330,18 @@ with the position passed in by the caller.
 
 What do we do with `state.val`?
 It depends on where the nonterminal is found.
-If it’s followed by a label,
+If it’s preceded by a label,
 we want to store it in a variable
 under that name
-for later use:
+for later use, 
+unless it fails.
+Let’s have `term`,
+just like `choice`,
+return a string of zero or more valid JavaScript statements.
 
     (in the metacircular compiler-compiler)
-    label <- ':'_ name: label _ -> (
-        '  if (state) var ', label, ' = state.val;\n').
+    labeled <- label: name _ ':'_ value: term -> (
+        [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
 
 (Ideally we would undo this saving
 if the nonterminal is in an alternative
@@ -346,18 +349,6 @@ that fails and ends up being backtracked;
 but hopefully the result expressions
 of later alternatives
 will simply not use that variable.)
-
-In between the nonterminal
-(or other term)
-and the optional label,
-there can appear a quantifier `*` or `+`.
-I’m not going to explain their implementation yet,
-but this is where they show up in the grammar,
-in the guise of nonterminals `zero_or_more` and `one_or_more`,
-two of the alternatives for a bare quantified term:
-
-    bare_qterm = zero_or_more / one_or_more / term.
-    qterm <- bare_qterm: a label: b -> (a + b) / bare_qterm.
 
 Now,
 if the nonterminal
@@ -368,7 +359,7 @@ and additionally we want to return its `state.pos`
 as our `state.pos`;
 or, if it failed,
 it returned `null`,
-and we want to return `null`.
+in which case we want to return `null`.
 
 So at the end of the function,
 we can just return `state`:
@@ -378,8 +369,7 @@ we can just return `state`:
 
 Now we just need to ensure
 that all of the other expression types
-(sequence, terminal strings, ordered choice, negation, 
-`zero_or_more` with `*`, and `one_or_more` with `+`)
+(sequence, ordered choice, negation, terminal strings, parenthesized)
 update `state` in a manner analogous
 to how calls to nonterminals update `state`.
 
@@ -392,6 +382,8 @@ we should probably define the one predefined nonterminal,
     + '  if (pos >= input.length) return null;\n'
     + '  return { pos: pos + 1, val: input[pos] };\n'
     + '}\n'
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Sequence ###
 
