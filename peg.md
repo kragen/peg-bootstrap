@@ -305,7 +305,7 @@ and it needs to be initialized
 with the position passed in by the caller.
 
     (in function prologue)
-    '  var state = { pos: pos };',
+    '  var state = { pos: pos };\n',
 
 What do we do with `state.val`?
 It depends on where the nonterminal is found.
@@ -352,7 +352,7 @@ So at the end of the function,
 we can just return `state`:
 
     (in function epilogue)
-    '  return state;',
+    '  return state;\n',
 
 Now we just need to ensure
 that all of the other expression types
@@ -821,7 +821,7 @@ to Alessandro Warth and Yoshiki Ohshima for developing OMeta
 and showing that PEGs can be extended
 to a wide variety of non-parsing tasks.
 
-To Aristotle Pagaltzis 
+To [Aristotle Pagaltzis](http://plasmasturm.org/)
 for innumerable improvements 
 to the readability and correctness
 of this document.
