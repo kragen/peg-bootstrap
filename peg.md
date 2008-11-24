@@ -613,26 +613,24 @@ to direct the parser how to parse `/` and `!` and so on.
 
     parenthesized <- '('_ body: choice ')'_ -> (body).
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 The Whole Metacircular Compiler-Compiler
 ----------------------------------------
 
 Here’s the whole thing,
 extracted from this document:
-(note, this is out of date, needs updating)
 
     (in the output metacircular compiler-compiler)
     sp <- ' ' / '\n' / '\t'.
-    _ <- sp*.
-    grammar <- _ (name: name _ '<-' _ choice: body '.' _
-                  -> (["function parse_", name, "(input, pos) {\n",
-                         '  var state = { pos: pos };',
-                         '  var stack = [];\n',
-                         body, 
-                         '  return state;',
-                       "\n}\n"].join('')))+: functions
-               -> (functions.join("\n")
+    _  <- sp _ / .
+    rule    <- n: name _ '<-'_ body: choice '.'_
+               -> (["function parse_", n, "(input, pos) {\n",
+                      '  var state = { pos: pos };\n',
+                      '  var stack = [];\n',
+                      body, 
+                      '  return state;\n',
+                   "\n}\n"].join('')).
+    grammar <- _ r: rule g: grammar -> (r + "\n" + g)
+             / _ r: rule -> (r + "\n" +
                    + 'function parse_char(input, pos) {\n'
                    + '  if (pos >= input.length) return null;\n'
                    + '  return { pos: pos + 1, val: input[pos] };\n'
@@ -642,26 +640,26 @@ extracted from this document:
                    + '    return { pos: pos + string.length, val: string };\n'
                    + '  } else return null;\n'
                    + '}\n'
-                  ).
-    meta     <- '!' / '\'' / '<-' / '/' / '.' / '+' / '*' / '(' / ')' 
-              / ':' / '->'.
-    name     <- (!meta !sp char)+: chars -> (chars.join('')).
-    term <- negation / string / nonterminal / parenthesized.
-    nonterminal <- name: name _ -> (
-        ['  state = parse_', name, '(input, state.pos);\n'].join('')
+               ).
+    meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
+    name     <- c: namechar n: name -> (c + n) / namechar.
+    namechar <- !meta !sp char.
+    term <- labeled / nonterminal / string / negation / parenthesized.
+    nonterminal <- n: name _ -> (
+        ['  state = parse_', n, '(input, state.pos);\n'].join('')
     ).
-    label <- ':'_ name: label _ -> (
-        '  if (state) var ', label, ' = state.val;\n').
-    bare_qterm = zero_or_more / one_or_more / term.
-    qterm <- bare_qterm: a label: b -> (a + b) / bare_qterm.
-    sequence <- qterm: foo sequence: bar -> (
+    labeled <- label: name _ ':'_ value: term -> (
+        [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
+    sequence <- foo: term  bar: sequence -> (
                          [foo, '  if (state) {\n', bar, '}\n'].join(''))
                    / result_expression
                    / -> ('').
-    string <- '\'' (!'\\' char / '\\': a char: b -> (a + b))*: string '\'' -> (
-        ["  state = literal(input, state.pos, '", string.join(''), "');\n"
-        ].join('')).
-    choice <- sequence: a '/'_ choice: b -> (
+    string <- '\'' s: stringcontents '\'' -> (
+        ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
+    stringcontents <-   !'\\' c: char  s: stringcontents -> (c + s)
+                    / b: '\\'  c: char  s: stringcontents ->  (b + c + s)
+                    / -> ('').
+    choice <- a: sequence '/'_  b: choice -> (
         ['  stack.push(state);\n',
          a,
          '  if (!state) {\n',
@@ -671,7 +669,7 @@ extracted from this document:
          '    stack.pop();\n', // discard unnecessary saved state
          '  }\n'].join(''))
                   / sequence.
-    negation <- '!'_ qterm: t -> (
+    negation <- '!'_ t: term -> (
         ['  stack.push(state);\n',
          t,
          '  if (state) {\n',
@@ -680,39 +678,16 @@ extracted from this document:
          '  } else {\n',
          '    state = stack.pop();\n',
          '  }\n'].join('')).
-    zero_or_more <- term: body '*' -> ([
-        '  stack.push({pos: state.pos, val: []});\n',
-        '  for (;;) {\n',
-             body,
-        '    if (!state) break;\n',
-        '    var loopstate = stack[stack.length - 1];\n',
-        '    loopstate.val.push(state.val);\n',
-        '    loopstate.pos = state.pos;\n',
-        '  }\n',
-        '  state = stack.pop()\n'
-    ].join('')).
-    one_or_more <- term: body '+' -> ([
-        '  stack.push({pos: state.pos, val: []});\n',
-        '  for (;;) {\n',
-             body,
-        '    if (!state) break;\n',
-        '    var loopstate = stack[stack.length - 1];\n',
-        '    loopstate.val.push(state.val);\n',
-        '    loopstate.pos = state.pos;\n',
-        '  }\n',
-        '  state = stack.pop()\n'
-        ,'  if (state.val.length == 0) state = null;\n'
-    ].join('')).
-    result_expression <- '->' expr: result -> (
+    result_expression <- '->'_ result: expr -> (
         ['  state.val = ', result, ';\n'].join('')
     ).
-    expr       <- '('_ (!'(' !')' char / inner_expr)*: contents ')'_ 
-                  -> (contents.join('')).
-    inner_expr <- '('_ (!'(' !')' char / inner_expr)*: contents ')'_ 
-                  -> ('(' + contents.join('') + ')').
-    parenthesized <- '('_ choice: body ')'_ -> (body).
+    expr         <- '('_ e: exprcontents ')'_ -> (e).
+    inner        <- '('_ e: exprcontents ')'_ -> ('(' + e + ')').
+    exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
+                  / -> ('').
+    parenthesized <- '('_ body: choice ')'_ -> (body).
 
-That’s 88 lines of code,
+That’s 66 lines of code,
 constituting a compiler
 that could compile itself into JavaScript,
 if only it worked.
