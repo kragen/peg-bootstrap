@@ -572,8 +572,6 @@ it’s the `state` you started with.
 So that does the right thing,
 perhaps a bit verbosely.
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Result Expressions ###
 
 A result expression
@@ -582,12 +580,13 @@ to evaluate
 to get the value that a sequence parses to.
 Normally, it uses variable bindings
 produced by labels.
-That may become
+The value it returns
+may become
 the value of the term (if the sequence is inside parentheses)
 or the value returned by a whole parsing function.
 
     (in the metacircular compiler-compiler)
-    result_expression <- '->' expr: result -> (
+    result_expression <- '->'_ result: expr -> (
         ['  state.val = ', result, ';\n'].join('')
     ).
 
@@ -595,13 +594,13 @@ The expression is delimited by parentheses `()`.
 But the outermost pair of parentheses
 are dropped,
 while inner parentheses are retained.
-This requires two productions
+This requires two outer `expr` productions
 with minimal differences between them:
 
-    expr       <- '('_ (!'(' !')' char / inner_expr)*: contents ')'_ 
-                  -> (contents.join('')).
-    inner_expr <- '('_ (!'(' !')' char / inner_expr)*: contents ')'_ 
-                  -> ('(' + contents.join('') + ')').
+    expr         <- '('_ e: exprcontents ')'_ -> (e).
+    inner        <- '('_ e: exprcontents ')'_ -> ('(' + e + ')').
+    exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
+                  / -> ('').
 
 ### Parenthesized Expressions ###
 
@@ -610,9 +609,11 @@ don’t need any real special handling,
 or rather the special handling
 consists of the `stack` variable everything uses to backtrack;
 the parentheses are only there
-to direct the parser how to parse `/` and `*` and so on.
+to direct the parser how to parse `/` and `!` and so on.
 
-    parenthesized <- '('_ choice: body ')'_ -> (body).
+    parenthesized <- '('_ body: choice ')'_ -> (body).
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 The Whole Metacircular Compiler-Compiler
 ----------------------------------------
