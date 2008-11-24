@@ -69,20 +69,34 @@ Note that the above grammar tells us how to parse the language,
 but doesn’t tell us anything about its semantics.
 But it’s nice and short.
 
-Adding Grouping and Repetition
-------------------------------
+Adding Grouping
+---------------
 
-The PEG language as written is pretty weak.
+The PEG language as written above is pretty weak.
 It doesn’t have grouping or repetition,
 although they can be emulated with the use of extra productions,
 as in the `foos` pattern explained above.
 
-It turns out
-that adding grouping and repetition to the language
-makes it *shorter* and *clearer*,
-not longer and more complex.
+We can add grouping by redefining `term` like this:
 
-    (in a more powerful PEG grammar)
+    (in a slightly more powerful parsing expression grammar)
+    term           <- '!'_ term / '\'' stringcontents '\''_ / name _ 
+                    / '('_ choice ')'_.
+
+This simplifies the grammar only slightly;
+we can rewrite `stringcontents` as follows:
+
+    stringcontents <- (!'\\' char / '\\' char) stringcontents / .
+
+A Diversion: Adding Repetition
+------------------------------
+
+Although it turns out not to be very useful
+for what I’ll do next,
+adding the capability for repetition to the language
+makes it shorter and clearer.
+
+    (in a more powerful PEG)
     sp      <- ' ' / '\n' / '\t'.
     _       <- sp*.
     grammar <- _ (name _ '<-'_ choice '.'_)+.
@@ -96,15 +110,15 @@ That shrinks the grammar considerably,
 while significantly expanding 
 the expressiveness of the grammar language it describes.
 
+Adding Actions
+--------------
+
 In theory, the grammar as written could be useful.
 It’s expressive enough to describe
 the tree structure of a language,
 such as the PEG language defined above.
 So you could use it to parse some string
 into a syntax tree.
-
-Adding Actions
---------------
 
 However,
 it would be even more useful
@@ -126,32 +140,39 @@ at the end of the sequence.
 Here’s an extension of the above grammar
 that allows for such names and result specifications:
 
-    (in the more powerful PEG grammar, describing results)
+    (in a more powerful PEG grammar, describing results)
     sp       <- ' ' / '\n' / '\t'.
-    _        <- sp*.
-    grammar  <- _ (name _ '<-'_ choice '.'_)+.
-    choice   <- sequence ('/'_ sequence)*.
-    sequence <- (qterm (':'_ name / ))* ('->'_ expr / ).
+    _        <- sp _ / .
+    grammar  <- _ rule grammar / _ rule.
+    rule     <- name _ '<-'_ choice '.'_.
+    choice   <- sequence '/'_ choice / sequence.
+    sequence <- term sequence / ('->'_ expr / ) / .
     expr     <- '('_ (!'(' !')' char / expr)* ')'_.
-    qterm    <- ('!'_ qterm / string / name / '('_ choice ')')_ ('+' / '*' / )_.
+    term     <- name _ ':'_ term / '!'_ term / string / name _ 
+              / '('_ choice ')'_.
     string   <- '\'' (!'\\' char / '\\' char)* '\''.
-    meta     <- '!' / '\'' / '<-' / '/' / '.' / '+' / '*' / '(' / ')' 
-              / ':' / '->'.
+    meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name     <- (!meta !sp char)+.
 
 This adds the possibility
-that a term may be followed by a colon and a name,
+that a term may be preceded by a colon and a name,
 and that a sequence may end
 with a `->` and a parenthesized expression.
 
 This lets you write things like
-`name: n` 
-and `name _ -> (print("got name"))`.
+`n: expr` 
+and `expr _ -> (print("got expr"))`.
 It doesn’t place strong requirements 
 on the embedded expression, 
 so it can be in almost any language, 
 but it does require that any parentheses inside of it 
 be balanced.
+(If that's difficult in a certain case,
+due to embedded strings,
+maybe you can incorporate some commented-out parentheses
+to balance things.)
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 A Metacircular Compiler-Compiler
 --------------------------------
