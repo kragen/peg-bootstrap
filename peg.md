@@ -421,8 +421,6 @@ The `result_expression` case
 is one of the last things explained,
 so ignore it for now.
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Terminal Strings ###
 
 A “terminal” or literal string like `'->'`
@@ -452,9 +450,11 @@ such as C,
 this might pose some difficulty.
 
     (in the metacircular compiler-compiler)
-    string <- '\'' (!'\\' char / '\\': a char: b -> (a + b))*: string '\'' -> (
-        ["  state = literal(input, state.pos, '", string.join(''), "');\n"
-        ].join('')).
+    string <- '\'' s: stringcontents '\'' -> (
+        ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
+    stringcontents <-   !'\\' c: char  s: stringcontents -> (c + s)
+                    / b: '\\'  c: char  s: stringcontents ->  (b + c + s)
+                    / -> ('').
 
 As we iterate through the characters or backslash-escapes
 inside the string, we convert them to strings —
@@ -466,6 +466,8 @@ with the current position
 and it either returns `null`
 or gives us the new position and the value it matched
 as our new `state`.
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Ordered Choice ###
 
