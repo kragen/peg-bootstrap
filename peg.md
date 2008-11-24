@@ -147,7 +147,8 @@ that allows for such names and result specifications:
     rule     <- name _ '<-'_ choice '.'_.
     choice   <- sequence '/'_ choice / sequence.
     sequence <- term sequence / ('->'_ expr / ) / .
-    expr     <- '('_ (!'(' !')' char / expr)* ')'_.
+    expr     <- '('_ exprcontents ')'_.
+    exprcontents <- (!'(' !')' char / expr) exprcontents / .
     term     <- name _ ':'_ term / '!'_ term / string / name _ 
               / '('_ choice ')'_.
     string   <- '\'' (!'\\' char / '\\' char)* '\''.
