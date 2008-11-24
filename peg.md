@@ -519,8 +519,6 @@ rather than a copy of `state`
 because we never mutate the existing `state`;
 we only make new `state` objects.
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Negation ###
 
 Negation `!x`
@@ -530,7 +528,7 @@ failing if parsing `x` succeeded,
 and otherwise proceeding from the saved parse state.
 
     (in the metacircular compiler-compiler)
-    negation <- '!'_ qterm: t -> (
+    negation <- '!'_ t: term -> (
         ['  stack.push(state);\n',
          t,
          '  if (state) {\n',
@@ -540,17 +538,9 @@ and otherwise proceeding from the saved parse state.
          '    state = stack.pop();\n',
          '  }\n'].join('')).
 
-`negation` is defined as negating a `qterm`
-because `!x+` has two possible stupid meanings:
-if `!` negates a `term`, then it is equivalent to `(!x)+`,
-which will try to match `x` at the same point repeatedly until it succeeds,
-which will either happen never or immediately;
-but if `!` negates a `qterm`, then it is equivalent to `!(x+)`,
-which is just a particularly obtuse way to write `!x`.
-
 You can use a double negative like `!!'->'`
 to write a “zero-width positive lookahead assertion” in Perl lingo.
-So that should compile into this:
+That compiles into this:
 
     (in the output of the compiler-compiler)
       stack.push(state);
@@ -571,84 +561,18 @@ So that should compile into this:
 
 The initial `state` is assumed to be non-`null`.
 So after the call to `literal`,
-`state` is `null` iff the next couple of characters weren’t `->`.
+`state` is non-`null` iff the next couple of characters were `->`.
 Then, after the first `if`,
-`state` is `null` iff the next couple of characters *were* `->`.
+`state` is non-`null` iff the next couple of characters *weren’t* `->`.
 Then, after the second `if`,
-it is again `null` iff the next couple of characters weren’t `->`.
-And if it isn’t `null`,
+it is again non-`null` iff the next couple of characters were `->`.
+And if it’s non-`null`,
 it’s the `state` you started with.
 
-### Repetition with `*` ###
+So that does the right thing,
+perhaps a bit verbosely.
 
-It is clearly possible
-to factor out repetitions
-into uses of a “helper” production,
-like the `stringcontents`/`stringchar` and `name`/`namechar` productions
-in the first grammar given.
-
-But it is also possible
-to implement `*` and `+` directly,
-and I think that is simpler.
-
-The template for `*` is fairly familiar:
-
-    (in the metacircular compiler-compiler)
-    zero_or_more <- term: body '*' -> ([
-        <<the implementation of *>>
-    ].join('')).
-
-To implement `*`, we write a loop.
-As long as we aren’t failing,
-we continue the loop.
-As soon as we fail,
-we exit the loop
-and backtrack to the state
-when we started the latest iteration of the loop.
-
-We’ll use the same stack for repetition
-that we used for ordered choice.
-We’ll accumulate the values produced by `body`
-on different iterations of the loop
-in the `val` property of the state on the stack.
-
-    (in the implementation of *)
-    '  stack.push({pos: state.pos, val: []});\n',
-    '  for (;;) {\n',
-         body,
-    '    if (!state) break;\n',
-    '    var loopstate = stack[stack.length - 1];\n',
-    '    loopstate.val.push(state.val);\n',
-    '    loopstate.pos = state.pos;\n',
-    '  }\n',
-    '  state = stack.pop()\n'
-
-If there are multiple loops in a function,
-there will be multiple `var loopstate` declarations,
-but that won’t create multiple independent `loopstate` variables,
-because JavaScript is stupid that way;
-that’s why we store `loopstate` on `stack`, annoying as it is.
-However,
-it’s apparently valid 
-to have multiple declarations of the same variable!
-So we don’t need to stick it in the function prologue.
-
-### Repetition with `+` ###
-
-The only difference between `+` and `*`
-is what they do in the case of no iterations.
-`*` evaluates to an empty list;
-`+` fails.
-
-So a really simple way to implement `+`
-is by performing `*`,
-and then failing if it evaluated to an empty list:
-
-    (in the metacircular compiler-compiler)
-    one_or_more <- term: body '+' -> ([
-        <<the implementation of *>>
-        ,'  if (state.val.length == 0) state = null;\n'
-    ].join('')).
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Result Expressions ###
 
