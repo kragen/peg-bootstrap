@@ -315,7 +315,7 @@ is compiled as a call to its parsing function,
 passing in the current position.
 
     (in the metacircular compiler-compiler)
-    term <- labeled / negation / string / nonterminal / parenthesized.
+    term <- labeled / nonterminal / string / negation / parenthesized.
     nonterminal <- n: name _ -> (
         ['  state = parse_', n, '(input, state.pos);\n'].join('')
     ).
@@ -369,7 +369,7 @@ we can just return `state`:
 
 Now we just need to ensure
 that all of the other expression types
-(sequence, ordered choice, negation, terminal strings, parenthesized)
+(sequence, terminal strings, ordered choice, negation, parenthesized)
 update `state` in a manner analogous
 to how calls to nonterminals update `state`.
 
@@ -422,10 +422,6 @@ is one of the last things explained,
 so ignore it for now.
 
 ### Terminal Strings ###
-
-XXX move this after Ordered Choice?
-XXX rearrange order in production? The only constraint is that `labeled`
-must come before `nonterminal`.
 
 A “terminal” or literal string like `'->'`
 either matches some characters in the input
