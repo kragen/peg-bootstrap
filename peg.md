@@ -423,6 +423,10 @@ so ignore it for now.
 
 ### Terminal Strings ###
 
+XXX move this after Ordered Choice?
+XXX rearrange order in production? The only constraint is that `labeled`
+must come before `nonterminal`.
+
 A “terminal” or literal string like `'->'`
 either matches some characters in the input
 or fails to do so.
@@ -467,19 +471,18 @@ and it either returns `null`
 or gives us the new position and the value it matched
 as our new `state`.
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Ordered Choice ###
 
-The remaining expression types
-(ordered choice, negation, and repetition with `+` and `*`)
-all can require backtracking.
+Two of the remaining expression types
+(ordered choice, negation, but not terminal strings and parenthesized)
+can require backtracking.
 So we have to save a state
 and possibly restore that state.
 
-The paradigm for them all
-is ordered choice, or alternation.
-If the first alternative succeeds,
+Here’s how ordered choice works;
+negation is fairly similar.
+In ordered choice,
+if the first alternative succeeds,
 we don’t try the others;
 but if it fails,
 we restore the previously saved state.
@@ -494,19 +497,17 @@ So on entry to the function, we create a stack:
     (in function prologue)
     '  var stack = [];\n',
 
-We can use the same trick
-as with `sequence`
-to transform an N-way choice 
-like `negation / string / terminal / parenthesized`
+The grammar entry treats N-way choices
+like `labeled / negation / string / nonterminal / parenthesized`
 into a nested 2-way choice
-like `negation / (string / (terminal / parenthesized))`.
+like `labeled / (negation / (string / (nonterminal / parenthesized)))`.
 This is a little bit needlessly inefficient,
 since we’ll be using potentially three stack entries
 instead of one,
 but it will do for now.
 
     (in the metacircular compiler-compiler)
-    choice <- sequence: a '/'_ choice: b -> (
+    choice <- a: sequence '/'_  b: choice -> (
         ['  stack.push(state);\n',
          a,
          '  if (!state) {\n',
@@ -521,6 +522,8 @@ It’s only safe to push `state`
 rather than a copy of `state`
 because we never mutate the existing `state`;
 we only make new `state` objects.
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Negation ###
 
