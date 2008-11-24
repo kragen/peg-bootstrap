@@ -140,7 +140,7 @@ at the end of the sequence.
 Here’s an extension of the above grammar
 that allows for such names and result specifications:
 
-    (in a more powerful PEG grammar, describing results)
+    (in a PEG describing results)
     sp           <- ' ' / '\n' / '\t'.
     _            <- sp _ / .
     grammar      <- _ rule grammar / _ rule.
@@ -151,9 +151,11 @@ that allows for such names and result specifications:
     exprcontents <- (!'(' !')' char / expr) exprcontents / .
     term         <- name _ ':'_ term / '!'_ term / string / name _ 
                   / '('_ choice ')'_.
-    string       <- '\'' (!'\\' char / '\\' char)* '\''.
+    string       <- '\'' stringcontents '\''.
+    stringcontents <- !'\\' char stringcontents / '\\' char stringcontents / .
     meta         <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
-    name         <- (!meta !sp char)+.
+    name         <- namechar name / namechar.
+    namechar     <- !meta !sp char.
 
 This adds the possibility
 that a term may be preceded by a colon and a name,
