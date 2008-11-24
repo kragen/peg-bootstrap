@@ -146,7 +146,7 @@ that allows for such names and result specifications:
     grammar        <- _ rule grammar / _ rule.
     rule           <- name _ '<-'_ choice '.'_.
     choice         <- sequence '/'_ choice / sequence.
-    sequence       <- term sequence / ('->'_ expr / ) / .
+    sequence       <- term sequence / '->'_ expr / .
     expr           <- '('_ exprcontents ')'_.
     exprcontents   <- (!'(' !')' char / expr) exprcontents / .
     term           <- name _ ':'_ term / '!'_ term / string / name _ 
@@ -383,8 +383,6 @@ we should probably define the one predefined nonterminal,
     + '  return { pos: pos + 1, val: input[pos] };\n'
     + '}\n'
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 ### Sequence ###
 
 Sequences are relatively simple.
@@ -396,15 +394,15 @@ If it fails,
 the sequence as a whole fails,
 and there is no current position.
 
-This is easier to do
-in the version of the grammar that doesn’t use `*`
-to define `sequence`,
+This is one of the things
+that is easier to do
+if you don’t try to write your grammar with features like `*`,
 since it treats sequences of arbitrary numbers of things
 as nested sequences of two items,
 the innermost of which is empty.
 
     (in the bare grammar)
-    sequence <- qterm sequence / .
+    sequence <- term sequence / '->'_ expr / .
 
 The case of an empty sequence
 doesn’t update `state` at all.
@@ -414,7 +412,7 @@ and if `foo` doesn’t set `state` to `null`,
 we execute `bar`.
 
     (in the metacircular compiler-compiler)
-    sequence <- qterm: foo sequence: bar -> (
+    sequence <- foo: term  bar: sequence -> (
                          [foo, '  if (state) {\n', bar, '}\n'].join(''))
                    / result_expression
                    / -> ('').
@@ -422,6 +420,8 @@ we execute `bar`.
 The `result_expression` case 
 is one of the last things explained,
 so ignore it for now.
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Terminal Strings ###
 
