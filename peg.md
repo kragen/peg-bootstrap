@@ -141,21 +141,21 @@ Here’s an extension of the above grammar
 that allows for such names and result specifications:
 
     (in a PEG describing results)
-    sp           <- ' ' / '\n' / '\t'.
-    _            <- sp _ / .
-    grammar      <- _ rule grammar / _ rule.
-    rule         <- name _ '<-'_ choice '.'_.
-    choice       <- sequence '/'_ choice / sequence.
-    sequence     <- term sequence / ('->'_ expr / ) / .
-    expr         <- '('_ exprcontents ')'_.
-    exprcontents <- (!'(' !')' char / expr) exprcontents / .
-    term         <- name _ ':'_ term / '!'_ term / string / name _ 
-                  / '('_ choice ')'_.
-    string       <- '\'' stringcontents '\''.
+    sp             <- ' ' / '\n' / '\t'.
+    _              <- sp _ / .
+    grammar        <- _ rule grammar / _ rule.
+    rule           <- name _ '<-'_ choice '.'_.
+    choice         <- sequence '/'_ choice / sequence.
+    sequence       <- term sequence / ('->'_ expr / ) / .
+    expr           <- '('_ exprcontents ')'_.
+    exprcontents   <- (!'(' !')' char / expr) exprcontents / .
+    term           <- name _ ':'_ term / '!'_ term / string / name _ 
+                    / '('_ choice ')'_.
+    string         <- '\'' stringcontents '\''.
     stringcontents <- !'\\' char stringcontents / '\\' char stringcontents / .
-    meta         <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
-    name         <- namechar name / namechar.
-    namechar     <- !meta !sp char.
+    meta           <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
+    name           <- namechar name / namechar.
+    namechar       <- !meta !sp char.
 
 This adds the possibility
 that a term may be preceded by a colon and a name,
