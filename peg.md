@@ -173,8 +173,6 @@ due to embedded strings,
 maybe you can incorporate some commented-out parentheses
 to balance things.)
 
-XXX fixed up to here to not mainstream repetition or put names later
-
 A Metacircular Compiler-Compiler
 --------------------------------
 
@@ -189,13 +187,13 @@ that parses
 the sub-language defined by that parsing expression.
 For example,
 we want to translate 
-`expr <- '(' _ (!'(' !')' char / expr)* ')' _.`
+`choice <- sequence '/'_ choice / sequence.`
 into a recursive JavaScript function
-that parses expressions containing balanced parentheses.
+that parses expressions containing slash-separated `choice`s.
 Since it doesn’t specify a result expression,
 it’s sort of indeterminate what it should actually do,
 other than consume characters from the input stream
-until it reaches the closing ')'.
+until it finds something `choice` can't parse.
 
 So now we have to figure out
 what the semantics are
@@ -208,7 +206,7 @@ it is a no-op.
 
     (in the metacircular compiler-compiler)
     sp <- ' ' / '\n' / '\t'.
-    _ <- sp*.
+    _  <- sp _ / .
 
 ### Rules ###
 
@@ -219,28 +217,25 @@ and the grammar as a whole
 into the collection of these functions
 plus whatever support code is needed.
 (Here I’m going to use double angle-brackets `<<>>`
-to name bits of code that aren’t given until later.)
+to name chunks of code that aren’t given until later.)
 
-    grammar <- _ (name: name _ '<-' _ choice: body '.' _
-                  -> (["function parse_", name, "(input, pos) {\n",
-                         <<function prologue>>
-                         body, 
-                         <<function epilogue>>
-                       "\n}\n"].join('')))+: functions
-               -> (functions.join("\n")
+    rule    <- n: name _ '<-'_ body: choice '.'_
+               -> (["function parse_", n, "(input, pos) {\n",
+                      <<function prologue>>
+                      body, 
+                      <<function epilogue>>
+                   "\n}\n"].join('')).
+    grammar <- _ r: rule g: grammar -> (r + "\n" + g)
+             / _ r: rule -> (r + "\n" +
                    <<support code>>
-                  ).
+               ).
 
 So a grammar nonterminal named `term`
 will be compiled into a function called `parse_term`,
 whose body will be the value computed by `choice`,
 bracketed by some startup and cleanup code,
-which therefore needs to evaluate to
+and therefore `choice` needs to evaluate to
 zero or more valid JavaScript statements.
-
-Note that I am assuming here that the value of `(foo -> (bar))+`
-is a JavaScript `Array`
-consisting of all the values computed by the expression `bar`.
 
 These functions
 will need to do several things
@@ -280,6 +275,8 @@ In case of failure,
 we’ll just return `null`.
 
 From here we’ll mostly work bottom-up.
+
+XXX fixed up to here to not mainstream repetition or put names later
 
 ### Names ###
 
