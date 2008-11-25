@@ -228,7 +228,7 @@ to name chunks of code that aren’t given until later.)
                       <<function prologue>>
                       body, 
                       <<function epilogue>>
-                   "\n}\n"].join('')).
+                   "}\n"].join('')).
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
              / _ r: rule -> (r + "\n" +
                    <<support code>>
@@ -415,7 +415,7 @@ we execute `bar`.
 
     (in the metacircular compiler-compiler)
     sequence <- foo: term  bar: sequence -> (
-                         [foo, '  if (state) {\n', bar, '}\n'].join(''))
+                         [foo, '  if (state) {\n', bar, '  }\n'].join(''))
                    / result_expression
                    / -> ('').
 
@@ -589,7 +589,7 @@ or the value returned by a whole parsing function.
 
     (in the metacircular compiler-compiler)
     result_expression <- '->'_ result: expr -> (
-        ['  state.val = ', result, ';\n'].join('')
+        ['  if (state) state.val = ', result, ';\n'].join('')
     ).
 
 The expression is delimited by parentheses `()`.
@@ -620,6 +620,7 @@ The Whole Metacircular Compiler-Compiler
 
 Here’s the whole thing,
 extracted from this document:
+(XXX out of date)
 
     (in the output metacircular compiler-compiler)
     sp <- ' ' / '\n' / '\t'.
@@ -653,7 +654,7 @@ extracted from this document:
     labeled <- label: name _ ':'_ value: term -> (
         [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
     sequence <- foo: term  bar: sequence -> (
-                         [foo, '  if (state) {\n', bar, '}\n'].join(''))
+                         [foo, '  if (state) {\n', bar, '  }\n'].join(''))
                    / result_expression
                    / -> ('').
     string <- '\'' s: stringcontents '\'' -> (
@@ -693,6 +694,203 @@ That’s 66 lines of code,
 constituting a compiler
 that could compile itself into JavaScript,
 if only it worked.
+
+Bootstrapping to JavaScript
+---------------------------
+
+Well, to actually execute this compiler-compiler,
+you need a version already running,
+so you can compile the compiler-compiler to JavaScript.
+
+### Hand-compiling: a blind alley ###
+
+I started by trying to compile it by hand,
+using YASnippet,
+but after not very long, I gave up on that approach.
+Here are the hand-compiled versions of
+`sp <- ' ' / '\n' / '\t'.` 
+and `_  <- sp _ / .`
+
+    (in the hand-compiled metacircular compiler-compiler)
+    function parse_sp(input, pos) {
+      var state = { pos: pos };
+      var stack = [];
+      stack.push(state);
+      state = literal(input, state.pos, ' ');
+      if (!state) {
+        state = stack.pop();
+      stack.push(state);
+      state = literal(input, state.pos, '\n');
+      if (!state) {
+        state = stack.pop();
+      state = literal(input, state.pos, '\t');
+      } else {
+        stack.pop();
+      }
+      } else {
+        stack.pop();
+      }
+      return state;
+    }
+    function parse__(input, pos) {
+      var state = { pos: pos };
+      var stack = [];
+      stack.push(state);
+      state = parse_sp(input, state.pos);
+      if (state) {
+      state = parse__(input, state.pos);
+      }
+      if (!state) {
+        state = stack.pop();
+      } else {
+        stack.pop();
+      }
+      return state;
+    }
+
+After thus inflating two lines of grammar 
+into 35 lines of JavaScript, 
+I knew I needed a better way.
+At that rate,
+the whole thing would be about 1200 lines.
+That’s too much to debug,
+even if YASnippet makes it relatively easy to type,
+unless there's no easier way.
+
+But there is.
+
+### A Bunch of Functions ###
+
+So, instead,
+I'm writing one function 
+for each interesting recognition rule from the grammar,
+returning the same result expressions
+that the parsing function will.
+Then I can construct 
+a sort of abstract syntax tree of the grammar
+out of calls to these functions,
+and it will only be a little larger than the grammar itself.
+
+For example, 
+the first rule `sp <- ' ' / '\n' / '\t'.`
+will become:
+
+    (in the bunch-of-functions version)
+    var sp_rule = rule('sp', choice(string(' '), choice(string('\\n'), 
+                                                        string('\\t'))));
+
+This is a bit of a cheat;
+the innermost choice really parses as
+`choice(sequence(string('\\n'), ''), sequence(string('\\t'), ''))`
+but I'm hoping that doesn’t matter for now.
+
+Then at the end I can combine all of the vars
+into a grammar.
+
+First I need the functions, though.
+
+I’m omitting `sp`
+(likewise `_`, `meta`)
+because they don’t produce interesting values.
+
+    function rule(n, body) {
+      return (["function parse_", n, "(input, pos) {\n",
+                      '  var state = { pos: pos };\n',
+                      '  var stack = [];\n',
+                      body, 
+                      '  return state;\n',
+                   "}\n"].join(''));
+    }
+
+    function grammar2(r, g) {
+      return (r + "\n" + g);
+    }
+
+    function grammar1(r) {
+      return (r + "\n" +
+                   + 'function parse_char(input, pos) {\n'
+                   + '  if (pos >= input.length) return null;\n'
+                   + '  return { pos: pos + 1, val: input[pos] };\n'
+                   + '}\n'
+                   + 'function literal(input, pos, string) {\n'
+                   + '  if (input.substr(pos, string.length) == string) {\n'
+                   + '    return { pos: pos + string.length, val: string };\n'
+                   + '  } else return null;\n'
+                   + '}\n'
+               );
+    }
+
+I’m omitting `name`
+(likewise `expr`, `inner`, `exprcontents`, `stringcontents`)
+because it just copies a character string from the input
+into the output.
+I can do that myself.
+And I’m omitting `term`
+because it just returns one of its children's values.
+
+    function nonterminal(n) {
+      return ['  state = parse_', n, '(input, state.pos);\n'].join('');
+    }
+    function labeled(label, value) {
+      return [value, '  if (state) var ', label, ' = state.val;\n'].join('');
+    }
+    function sequence(foo, bar) {
+      return [foo, '  if (state) {\n', bar, '  }\n'].join('');
+    }
+    function string(s) {
+      return ["  state = literal(input, state.pos, '", s, "');\n"].join('');
+    }
+    function choice(a, b) {
+      return [
+         '  stack.push(state);\n',
+         a,
+         '  if (!state) {\n',
+         '    state = stack.pop();\n',
+         b,
+         '  } else {\n',
+         '    stack.pop();\n', // discard unnecessary saved state
+         '  }\n'].join('');
+    }
+    function negation(t) {
+      return [
+         '  stack.push(state);\n',
+         t,
+         '  if (state) {\n',
+         '    stack.pop();\n',
+         '    state = null;\n',
+         '  } else {\n',
+         '    state = stack.pop();\n',
+         '  }\n'].join('');
+    }
+    function result_expression(result) {
+      return ['  state.val = ', result, ';\n'].join('');
+    }
+
+That’s it for the functions.
+Now to call them
+to compile the rest of the rules,
+other than `sp`.
+
+    var __rule = rule('_',
+                      choice(sequence(nonterminal('sp'), nonterminal('_')), 
+                             ''));
+    var rule_rule = rule('rule',
+        sequence(labeled('n', nonterminal('name')),
+            sequence(nonterminal('_'),
+                sequence(string('<-'),
+                    sequence(nonterminal('_'),
+                        sequence(labeled('body', nonterminal('choice')),
+                             sequence(nonterminal('_'),
+                                 result_expression("[\"function parse_\", n, \"(input, pos) {\\n\",\n                      '  var state = { pos: pos };\\n',\n                      '  var stack = [];\\n',\n                      body, \n                      '  return state;\\n',\n                   \"}\\n\"].join('')"))))))));
+
+`rule_rule` is clearly absurd,
+and yet it is only 8 lines,
+although one of them is 324 characters long,
+so it’s really more like 12 lines.
+The original `rule` rule
+is 7 lines long,
+so that’s a manageable expansion factor.
+I do want to solve the nested `sequence` problem though.
 
 TODO
 ----
