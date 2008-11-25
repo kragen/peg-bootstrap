@@ -1,10 +1,12 @@
 PEGs in a PEG
 =============
 
-So I was reading Bryan Ford’s dissertation
+So I was reading [Bryan Ford’s thesis][ford]
 about parsing expression grammars and packrat parsers,
 and I thought it would be fun to implement them
 and see how easy they really were.
+
+[ford]: http://pdos.csail.mit.edu/~baford/packrat/thesis/ "Packrat Parsing: a Practical Linear-Time Algorithm with Backtracking"
 
 A Minimal PEG Language
 ----------------------
@@ -498,7 +500,7 @@ like `labeled / negation / string / nonterminal / parenthesized`
 into a nested 2-way choice
 like `labeled / (negation / (string / (nonterminal / parenthesized)))`.
 This is a little bit needlessly inefficient,
-since we’ll be using potentially three stack entries
+since we’ll be using potentially four stack entries
 instead of one,
 but it will do for now.
 
