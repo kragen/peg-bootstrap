@@ -497,7 +497,7 @@ So on entry to the function, we create a stack:
 
 The grammar entry treats N-way choices
 like `labeled / negation / string / nonterminal / parenthesized`
-into a nested 2-way choice
+as nested 2-way choices
 like `labeled / (negation / (string / (nonterminal / parenthesized)))`.
 This is a little bit needlessly inefficient,
 since we’ll be using potentially four stack entries
@@ -809,15 +809,7 @@ because they don’t produce interesting values.
 
     function grammar1(r) {
       return (r + "\n"
-                   + 'function parse_char(input, pos) {\n'
-                   + '  if (pos >= input.length) return null;\n'
-                   + '  return { pos: pos + 1, val: input[pos] };\n'
-                   + '}\n'
-                   + 'function literal(input, pos, string) {\n'
-                   + '  if (input.substr(pos, string.length) == string) {\n'
-                   + '    return { pos: pos + string.length, val: string };\n'
-                   + '  } else return null;\n'
-                   + '}\n'
+                   <<support code>>
                );
     }
 
@@ -867,7 +859,7 @@ because it just returns one of its children's values.
       return ['  state.val = ', result, ';\n'].join('');
     }
 
-We’ll also need the support functions
+We’ll also need the support code
 from the `grammar` rule.
 
     function parse_char(input, pos) {
@@ -958,6 +950,76 @@ in order to retain some modicum of readability.
             "+ '    return { pos: pos + string.length, val: string };\\n'\n" +
             "+ '  } else return null;\\n'\n" +
             "+ '}\\n'"))));
+
+The quoting of the support code
+is kind of confusing;
+the original is one long string,
+containing a bunch of `\n` newlines,
+broken up into lines for readability,
+joined by the `+` operator.
+This version
+is also one long string,
+containing the lines of the original long string,
+also broken up into lines for readability,
+joined by the `+` operator.
+So there are two levels of quoting.
+The inner level has the `+` on the left and uses single quotes `''`,
+and the outer level has the `+` on the right and uses double quotes `""`.
+
+The next rule is `meta`,
+and it has a lot of `choice`s.
+So we define something like `nseq`,
+but for `choice`s.
+
+    function nchoice() {
+      var rv = arguments[arguments.length-1];
+      for (var ii = arguments.length-2; ii >= 0; ii--)
+        rv = choice(arguments[ii], rv);
+      return rv;
+    }
+
+    var meta_rule = rule('meta',
+      nchoice(string('!'), string('\\\''), string('<-'), string('/'),
+              string('.'), string('('),    string(')'),  string(':'),
+              string('->')));
+
+
+The next few rules
+are straightforward translations from the grammar.
+
+    var name_rule = rule('name', 
+        choice(nseq(labeled('c', nonterminal('namechar')),
+                    labeled('n', nonterminal('name')),
+                    result_expression('c + n')),
+               nonterminal('namechar')));
+    var namechar_rule = rule('namechar',
+        nseq(negation(nonterminal('meta')),
+             negation(nonterminal('sp')), nonterminal('char')));
+    var term_rule = rule('term',
+        nchoice(nonterminal('labeled'), nonterminal('nonterminal'), 
+                nonterminal('string'),  nonterminal('negation'),
+                nonterminal('parenthesized')));
+    var nonterminal_rule = rule('nonterminal',
+        nseq(labeled('n', nonterminal('name')), nonterminal('_'),
+             result_expression("['  state = parse_', n, " +
+                               "'(input, state.pos);\\n'].join('')")));
+    var labeled_rule = rule('labeled',
+        nseq(labeled('label', nonterminal('name')), nonterminal('_'),
+             string(':'), nonterminal('_'),
+             labeled('value', nonterminal('term')),
+             result_expression("[value, '  if (state) var ', " +
+                               "label, ' = state.val;\\n'].join('')")));
+    var sequence_rule = rule('sequence',
+        nchoice(nseq(labeled('foo', nonterminal('term')),
+                     labeled('bar', nonterminal('sequence')),
+                     result_expression("[foo, '  if (state) {\\n', " +
+                                       "bar, '  }\\n'].join('')")),
+                nonterminal('result_expression'),
+                sequence(result_expression("''"))));
+
+That’s 29 lines,
+transliterating 12 lines from the grammar,
+and now the transliteration is halfway done.
 
 TODO
 ----
