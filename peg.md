@@ -230,7 +230,7 @@ to name chunks of code that aren’t given until later.)
                       <<function epilogue>>
                    "}\n"].join('')).
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
-             / _ r: rule -> (r + "\n" +
+             / _ r: rule -> (r + "\n"
                    <<support code>>
                ).
 
@@ -633,7 +633,7 @@ extracted from this document:
                       '  return state;\n',
                    "}\n"].join('')).
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
-             / _ r: rule -> (r + "\n" +
+             / _ r: rule -> (r + "\n"
                    + 'function parse_char(input, pos) {\n'
                    + '  if (pos >= input.length) return null;\n'
                    + '  return { pos: pos + 1, val: input[pos] };\n'
@@ -775,7 +775,7 @@ For example,
 the first rule `sp <- ' ' / '\n' / '\t'.`
 will become:
 
-    (in the bunch-of-functions version)
+    (in the ASTs made of function calls)
     var sp_rule = rule('sp', choice(string(' '), choice(string('\\n'), 
                                                         string('\\t'))));
 
@@ -793,6 +793,7 @@ I’m omitting `sp`
 (likewise `_`, `meta`)
 because they don’t produce interesting values.
 
+    (in the bunch-of-functions version)
     function rule(n, body) {
       return (["function parse_", n, "(input, pos) {\n",
                       '  var state = { pos: pos };\n',
@@ -807,7 +808,7 @@ because they don’t produce interesting values.
     }
 
     function grammar1(r) {
-      return (r + "\n" +
+      return (r + "\n"
                    + 'function parse_char(input, pos) {\n'
                    + '  if (pos >= input.length) return null;\n'
                    + '  return { pos: pos + 1, val: input[pos] };\n'
@@ -866,31 +867,97 @@ because it just returns one of its children's values.
       return ['  state.val = ', result, ';\n'].join('');
     }
 
-That’s it for the functions.
-Now to call them
-to compile the rest of the rules,
-other than `sp`.
+We’ll also need the support functions
+from the `grammar` rule.
 
+    function parse_char(input, pos) {
+      if (pos >= input.length) return null;
+      return { pos: pos + 1, val: input[pos] };
+    }
+    function literal(input, pos, string) {
+      if (input.substr(pos, string.length) == string) {
+        return { pos: pos + string.length, val: string };
+      } else return null;
+    }
+
+Then,
+after all those functions are defined,
+we can call them to build up the ASTs.
+
+    <<the ASTs made of function calls>>
+
+The rule for `_` is quite straightforward:
+
+    (in the ASTs made of function calls)
     var __rule = rule('_',
                       choice(sequence(nonterminal('sp'), nonterminal('_')), 
                              ''));
-    var rule_rule = rule('rule',
-        sequence(labeled('n', nonterminal('name')),
-            sequence(nonterminal('_'),
-                sequence(string('<-'),
-                    sequence(nonterminal('_'),
-                        sequence(labeled('body', nonterminal('choice')),
-                             sequence(nonterminal('_'),
-                                 result_expression("[\"function parse_\", n, \"(input, pos) {\\n\",\n                      '  var state = { pos: pos };\\n',\n                      '  var stack = [];\\n',\n                      body, \n                      '  return state;\\n',\n                   \"}\\n\"].join('')"))))))));
 
-`rule_rule` is clearly absurd,
-and yet it is only 8 lines,
-although one of them is 324 characters long,
-so it’s really more like 12 lines.
-The original `rule` rule
-is 7 lines long,
-so that’s a manageable expansion factor.
-I do want to solve the nested `sequence` problem though.
+The rule for `rule`
+contains a rather long sequence,
+which will be treated 
+as a deeply nested bunch
+of two-element sequences.
+But it’s hard to read and write it that way,
+so I’m going to define a helper function `nseq`
+to make a sequence of an arbitrary number
+of sequence elements.
+
+    function nseq() {
+      var rv = arguments[arguments.length-1];
+      for (var ii = arguments.length-2; ii >= 0; ii--)
+        rv = sequence(arguments[ii], rv);
+      return rv;
+    }
+
+This will fail (returning `null`) 
+if we call it with no arguments,
+so let’s be sure not do that.
+Now we can define the rule for `rule`:
+
+    var rule_rule = rule('rule',
+        nseq(labeled('n', nonterminal('name')), nonterminal('_'),
+             string('<-'), nonterminal('_'),
+             labeled('body', nonterminal('choice')), 
+             string('.'), nonterminal('_'),
+             result_expression(
+                "[\"function parse_\", n, \"(input, pos) {\\n\",\n" +
+                "                      '  var state = { pos: pos };\\n',\n" +
+                "                      '  var stack = [];\\n',\n" +
+                "                      body, \n" +
+                "                      '  return state;\\n',\n" +
+                "                   \"}\\n\"].join('')")));
+
+`rule_rule` is clearly pretty verbose;
+it's 12 lines, 
+and the corresponding `rule` function is 8 lines,
+for a total of 20 lines for the “hand-compiled” version
+of the original 7-line `rule` rule.
+That’s a manageable expansion factor of about 3×.
+
+So, on to `grammar`.
+I’ve played fast and loose
+with leading whitespace here,
+in order to retain some modicum of readability.
+
+    var grammar_rule = rule('grammar',
+        choice(
+            nseq(nonterminal('_'),
+                 labeled('r', nonterminal('rule')),
+                 labeled('g', nonterminal('grammar')),
+                 result_expression('r + "\\n" + g')),
+            nseq(nonterminal('_'),
+                 labeled('r', nonterminal('rule')),
+                 result_expression('r + "\\n"\n' +
+            "+ 'function parse_char(input, pos) {\\n'\n" +
+            "+ '  if (pos >= input.length) return null;\\n'\n" +
+            "+ '  return { pos: pos + 1, val: input[pos] };\\n'\n" +
+            "+ '}\\n'\n" +
+            "+ 'function literal(input, pos, string) {\\n'\n" +
+            "+ '  if (input.substr(pos, string.length) == string) {\\n'\n" +
+            "+ '    return { pos: pos + string.length, val: string };\\n'\n" +
+            "+ '  } else return null;\\n'\n" +
+            "+ '}\\n'"))));
 
 TODO
 ----
