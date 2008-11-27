@@ -455,7 +455,7 @@ this might pose some difficulty.
     string <- '\'' s: stringcontents '\'' -> (
         ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
     stringcontents <-   !'\\' c: char  s: stringcontents -> (c + s)
-                    / b: '\\'  c: char  s: stringcontents ->  (b + c + s)
+                    / b: '\\' c: char  s: stringcontents -> (b + c + s)
                     / -> ('').
 
 As we iterate through the characters or backslash-escapes
@@ -1020,6 +1020,103 @@ are straightforward translations from the grammar.
 That’s 29 lines,
 transliterating 12 lines from the grammar,
 and now the transliteration is halfway done.
+
+    var string_rule = rule('string',
+        nseq(string("\\'"), labeled('s', nonterminal('stringcontents')),
+             string("\\'"),
+             result_expression('["  state = literal(input, state.pos, ' +
+                               '\'", s, "\');\\n"].join(\'\')')));
+    var stringcontents_rule = rule('stringcontents',
+        nchoice(nseq(negation(string("\\\\")), 
+                     labeled('c', nonterminal('char')),
+                     labeled('s', nonterminal('stringcontents')),
+                     result_expression('c + s')),
+                nseq(labeled('b', string("\\\\")),
+                     labeled('c', nonterminal('char')),
+                     labeled('s', nonterminal('stringcontents')),
+                     result_expression('b + c + s')),
+                result_expression("''")));
+
+For `choice` I’m omitting not only whitespace
+but also a comment.
+
+    var choice_rule = rule('choice',
+        choice(nseq(labeled('a', nonterminal('sequence')),
+                    string('/'), nonterminal('_'),
+                    labeled('b', nonterminal('choice')),
+                    result_expression(
+                        "['  stack.push(state);\\n',\n" +
+                        " a,\n" +
+                        " '  if (!state) {\\n',\n" +
+                        " '    state = stack.pop();\\n',\n" +
+                        " b,\n" +
+                        " '  } else {\\n',\n" +
+                        " '    stack.pop();\\n',\n" +
+                        " '  }\\n'].join('')")),
+               nonterminal('sequence')));
+    var negation_rule = rule('negation',
+        nseq(string('!'), nonterminal('_'), labeled('t', nonterminal('term')),
+             result_expression(
+                        "['  stack.push(state);\\n',\n" +
+                        " t,\n" +
+                        " '  if (state) {\\n',\n" +
+                        " '    stack.pop();\\n',\n" +
+                        " '    state = null;\\n',\n" +
+                        " '  } else {\\n',\n" +
+                        " '    state = stack.pop();\\n',\n" +
+                        " '  }\\n'].join('')")));
+    var result_expression_rule = rule('result_expression',
+        nseq(string('->'), nonterminal('_'), 
+             labeled('result', nonterminal('expr')),
+             result_expression("['  if (state) state.val = ', " +
+                               "result, ';\\n'].join('')")));
+    var expr_rule = rule('expr',
+        nseq(string('('), nonterminal('_'),
+             labeled('e', nonterminal('exprcontents')),
+             string(')'), nonterminal('_'),
+             result_expression('e')));
+    var inner_rule = rule('inner',
+        nseq(string('('), nonterminal('_'),
+             labeled('e', nonterminal('exprcontents')),
+             string(')'), nonterminal('_'),
+             result_expression("'(' + e + ')'")));
+    var exprcontents_rule = rule('exprcontents',
+        choice(
+            nseq(labeled('c',
+                         choice(nseq(negation(string('(')),
+                                     negation(string(')')),
+                                     nonterminal('char')),
+                                nonterminal('inner'))),
+                 labeled('e', nonterminal('exprcontents')),
+                 result_expression('c + e')),
+            result_expression("''")));
+    var parenthesized_rule = rule('parenthesized',
+        nseq(string('('), nonterminal('_'),
+             labeled('body', nonterminal('choice')),
+             string(')'), nonterminal('_'),
+             result_expression('body')));
+
+So that’s all the rules.
+Now we just need to assemble them into a grammar,
+using a technique similar to `nseq` and `nchoice`.
+
+    function ngrammar() {
+      var rv = grammar1(arguments[arguments.length-1]);
+      for (var ii = arguments.length-2; ii >= 0; ii--)
+        rv = grammar2(arguments[ii], rv);
+      return rv;
+    }
+
+    var all_rules = ngrammar(sp_rule, __rule, rule_rule, grammar_rule, 
+                             meta_rule, name_rule, namechar_rule, term_rule,
+                             nonterminal_rule, labeled_rule, sequence_rule,
+                             string_rule, stringcontents_rule, choice_rule,
+                             negation_rule, result_expression_rule, expr_rule,
+                             inner_rule, exprcontents_rule, parenthesized_rule);
+
+Now the variable `all_rules`
+should have a working parser in it
+in JavaScript.
 
 TODO
 ----

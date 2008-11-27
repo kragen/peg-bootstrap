@@ -2,11 +2,14 @@
 <textarea id="a" cols="80" rows="24"></textarea>
 <script type="text/javascript">
 window.onload = function() {
-    document.getElementById('a').value = sp_rule + __rule;
+/*    document.getElementById('a').value = sp_rule + __rule;
     document.getElementById('a').value += rule_rule;
     document.getElementById('a').value += grammar_rule;
     document.getElementById('a').value += meta_rule + name_rule +
         namechar_rule + term_rule + nonterminal_rule + labeled_rule +
-        sequence_rule;
+        sequence_rule + string_rule + stringcontents_rule + choice_rule; */
+    document.getElementById('a').value = all_rules;
+    eval(all_rules);
+    window.parse_grammar = parse_grammar;
 }
 </script>
