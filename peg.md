@@ -621,7 +621,6 @@ The Whole Metacircular Compiler-Compiler
 
 Here’s the whole thing,
 extracted from this document:
-(XXX out of date)
 
     (in the output metacircular compiler-compiler)
     sp <- ' ' / '\n' / '\t'.
