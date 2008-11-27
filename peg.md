@@ -33,7 +33,7 @@ written in terms of itself:
     sequence       <- term sequence / .
     term           <- '!'_ term / '\'' stringcontents '\''_ / name _.
     stringcontents <- stringchar stringcontents / .
-    stringchar     <- !'\\' char / '\\' char.
+    stringchar     <- !'\\' !'\'' char / '\\' char.
     name           <- namechar name / namechar.
     namechar       <- !'!' !'\'' !sp !'<-' !'/' !'.' char.
 
@@ -88,7 +88,7 @@ We can add grouping by redefining `term` like this:
 This simplifies the grammar only slightly;
 we can rewrite `stringcontents` as follows:
 
-    stringcontents <- (!'\\' char / '\\' char) stringcontents / .
+    stringcontents <- (!'\\' !'\'' char / '\\' char) stringcontents / .
 
 A Diversion: Adding Repetition
 ------------------------------
@@ -104,7 +104,7 @@ makes it shorter and clearer.
     grammar <- _ (name _ '<-'_ choice '.'_)+.
     choice  <- term* ('/'_ term*)*.
     term    <- ('!'_ term / string / name / '('_ choice ')')_ ('+' / '*' / )_.
-    string  <- '\'' (!'\\' char / '\\' char)* '\''.
+    string  <- '\'' (!'\\' !'\'' char / '\\' char)* '\''_.
     meta    <- '!' / '\'' / '<-' / '/' / '.' / '+' / '*' / '(' / ')'.
     name    <- (!meta !sp char)+.
 
@@ -153,8 +153,9 @@ that allows for such names and result specifications:
     exprcontents   <- (!'(' !')' char / expr) exprcontents / .
     term           <- name _ ':'_ term / '!'_ term / string / name _ 
                     / '('_ choice ')'_.
-    string         <- '\'' stringcontents '\''.
-    stringcontents <- !'\\' char stringcontents / '\\' char stringcontents / .
+    string         <- '\'' stringcontents '\''_.
+    stringcontents <- !'\\' !'\'' char stringcontents 
+                    / '\\' char stringcontents / .
     meta           <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name           <- namechar name / namechar.
     namechar       <- !meta !sp char.
@@ -452,10 +453,10 @@ such as C,
 this might pose some difficulty.
 
     (in the metacircular compiler-compiler)
-    string <- '\'' s: stringcontents '\'' -> (
+    string <- '\'' s: stringcontents '\''_ -> (
         ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
-    stringcontents <-   !'\\' c: char  s: stringcontents -> (c + s)
-                    / b: '\\' c: char  s: stringcontents -> (b + c + s)
+    stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + s)
+                    / b: '\\'       c: char  s: stringcontents -> (b + c + s)
                     / -> ('').
 
 As we iterate through the characters or backslash-escapes
@@ -657,10 +658,10 @@ extracted from this document:
                          [foo, '  if (state) {\n', bar, '  }\n'].join(''))
                    / result_expression
                    / -> ('').
-    string <- '\'' s: stringcontents '\'' -> (
+    string <- '\'' s: stringcontents '\''_ -> (
         ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
-    stringcontents <-   !'\\' c: char  s: stringcontents -> (c + s)
-                    / b: '\\'  c: char  s: stringcontents ->  (b + c + s)
+    stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + s)
+                    / b: '\\'       c: char  s: stringcontents -> (b + c + s)
                     / -> ('').
     choice <- a: sequence '/'_  b: choice -> (
         ['  stack.push(state);\n',
@@ -1023,11 +1024,11 @@ and now the transliteration is halfway done.
 
     var string_rule = rule('string',
         nseq(string("\\'"), labeled('s', nonterminal('stringcontents')),
-             string("\\'"),
+             string("\\'"), nonterminal('_'),
              result_expression('["  state = literal(input, state.pos, ' +
                                '\'", s, "\');\\n"].join(\'\')')));
     var stringcontents_rule = rule('stringcontents',
-        nchoice(nseq(negation(string("\\\\")), 
+        nchoice(nseq(negation(string("\\\\")), negation(string("\\'")),
                      labeled('c', nonterminal('char')),
                      labeled('s', nonterminal('stringcontents')),
                      result_expression('c + s')),
