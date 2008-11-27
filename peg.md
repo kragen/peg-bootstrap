@@ -631,7 +631,7 @@ extracted from this document:
                       '  var stack = [];\n',
                       body, 
                       '  return state;\n',
-                   "\n}\n"].join('')).
+                   "}\n"].join('')).
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
              / _ r: rule -> (r + "\n" +
                    + 'function parse_char(input, pos) {\n'
@@ -682,7 +682,7 @@ extracted from this document:
          '    state = stack.pop();\n',
          '  }\n'].join('')).
     result_expression <- '->'_ result: expr -> (
-        ['  state.val = ', result, ';\n'].join('')
+        ['  if (state) state.val = ', result, ';\n'].join('')
     ).
     expr         <- '('_ e: exprcontents ')'_ -> (e).
     inner        <- '('_ e: exprcontents ')'_ -> ('(' + e + ')').
