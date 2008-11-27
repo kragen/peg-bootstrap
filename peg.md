@@ -693,13 +693,13 @@ extracted from this document:
 
 That’s 66 lines of code,
 constituting a compiler
-that could compile itself into JavaScript,
-if only it worked.
+that can compile itself into JavaScript,
+if you have a way to execute it.
 
 Bootstrapping to JavaScript
 ---------------------------
 
-Well, to actually execute this compiler-compiler,
+But, to actually execute this compiler-compiler,
 you need a version already running,
 so you can compile the compiler-compiler to JavaScript.
 
@@ -1116,7 +1116,7 @@ using a technique similar to `nseq` and `nchoice`.
                              inner_rule, exprcontents_rule, parenthesized_rule);
 
 Now the variable `all_rules`
-should have a working parser in it
+has a working parser in it
 in JavaScript.
 
 TODO
