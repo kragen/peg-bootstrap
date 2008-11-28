@@ -100,7 +100,7 @@ result_expression <- '->'_ result: expr -> (
     ['  if (state) state.val = ', result, ';\n'].join('')
 ).
 expr         <- '('_ e: exprcontents ')'_ -> (e).
-inner        <- '('_ e: exprcontents ')'_ -> ('(' + e + ')').
+inner        <- '('_ e: exprcontents ')'  -> ('(' + e + ')').
 exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
               / -> ('').
 parenthesized <- '('_ body: choice ')'_ -> (body).
