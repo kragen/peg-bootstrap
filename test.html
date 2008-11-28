@@ -1,6 +1,43 @@
-<script src="bootstrap.js"></script>
-<textarea id="a" cols="80" rows="24"></textarea>
-<textarea id="b" cols="80" rows="66">
+<html><head>
+  <title>test page for metacircular PEG compiler-compiler</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="bootstrap.js"></script>
+  <script type="text/javascript">
+  function $(id) { return document.getElementById(id) }
+
+  window.onload = function() {
+      $('debug_output').value = all_rules;
+      eval(all_rules);
+      window.parse_grammar = parse_grammar;
+  }
+
+  function timeit(thunk) {
+      var start, end;
+      start = new Date();
+      thunk();
+      end = new Date();
+      $('debug_output').value = '' + (end.getTime() - start.getTime()) + ' ms';
+  }
+      
+
+  function compile(output_id) {
+      var output;
+      timeit(function() { output = parse_grammar($('grammar').value, 0).val; });
+      $(output_id).value = output;
+      eval(output);
+      window.parse_grammar = parse_grammar;
+  }
+  </script>
+
+</head><body>
+  <h1>test page for metacircular PEG compiler-compiler</h1>
+
+
+<h2>debug output</h2>
+<textarea id="debug_output" cols="80" rows="24"></textarea>
+<h2>input grammar</h2>
+<textarea id="grammar" cols="80" rows="66">
 sp <- ' ' / '\n' / '\t'.
 _  <- sp _ / .
 rule    <- n: name _ '<-'_ body: choice '.'_
@@ -68,16 +105,18 @@ exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
               / -> ('').
 parenthesized <- '('_ body: choice ')'_ -> (body).
 </textarea>
-<script type="text/javascript">
-window.onload = function() {
-/*    document.getElementById('a').value = sp_rule + __rule;
-    document.getElementById('a').value += rule_rule;
-    document.getElementById('a').value += grammar_rule;
-    document.getElementById('a').value += meta_rule + name_rule +
-        namechar_rule + term_rule + nonterminal_rule + labeled_rule +
-        sequence_rule + string_rule + stringcontents_rule + choice_rule; */
-    document.getElementById('a').value = all_rules;
-    eval(all_rules);
-    window.parse_grammar = parse_grammar;
-}
-</script>
+
+<h2>output compiler, first stage</h2>
+<a href="javascript:compile('output1')">go</a><br />
+<textarea id="output1" rows="10" cols="80"></textarea>
+
+<h2>output compiler, second stage</h2>
+<a href="javascript:compile('output2')">go</a><br />
+<textarea id="output2" rows="10" cols="80"></textarea>
+
+<h2>output compiler, third stage</h2>
+<a href="javascript:compile('output3')">go</a><br />
+<textarea id="output3" rows="10" cols="80"></textarea>
+
+</body></html>
+
