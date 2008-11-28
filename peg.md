@@ -1794,21 +1794,14 @@ to facilitate future bootstrapping.
 TODO
 ----
 
-- arrays (done)
-- move labels to before expressions, as in Ford’s thesis, rather than
-  after (or possibly use [label])
-- fixing `+` (done)
-- result expressions (done)
+- memoization
+- performance measurement
+- profiling
+- re-add repetition `+` and `*`
 - factor out loopbody?  like,  
   loopbody <- term: body -> (loop body code).  
   zero_or_more <- loopbody: body -> (body).
   one_or_more <- loopbody: body -> (body + 'if ...').
-- memoization
-- hand-compile it
-- test it
-- recompile it with itself
-- fix bugs
-- include self-compiled version here for bootstrapping
 
 Thanks
 ------
