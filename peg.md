@@ -1168,3 +1168,6 @@ to the readability and correctness
 of this document.
 
 <link rel="stylesheet" href="style.css" />
+<style type="text/css">
+p code {background-color: #f0f0f0; border: 1px solid #e3e3e3; padding: 1px;}
+</style>
