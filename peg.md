@@ -6,7 +6,44 @@ about parsing expression grammars and packrat parsers,
 and I thought it would be fun to implement them
 and see how easy they really were.
 
+It turns out they can be fairly easy;
+this document contains a one-page PEG parser generator
+that generates PEG parsers in JavaScript,
+along with an explanation of how it works.
+
 [ford]: http://pdos.csail.mit.edu/~baford/packrat/thesis/ "Packrat Parsing: a Practical Linear-Time Algorithm with Backtracking"
+
+What Are PEGs?
+--------------
+
+A PEG is a formal language description
+which describes how to *parse* a language,
+by contrast with context-free grammars,
+which primarily describe how to *generate* sentences of a language.
+This difference
+makes it much easier to construct parsers for PEGs;
+they can be straightforwardly converted
+into simple recursive-descent parsers
+performing limited backtracking,
+with each nonterminal becoming a parsing function.
+
+PEGs can parse some languages
+that context-free grammars can’t;
+because they can’t handle ambiguity,
+and because there’s a linear-time parsing algorithm for them,
+it is suspected that they can’t parse
+all languages context-free grammars can.
+`S → a S a | a S b | b S a | b S b | a` 
+is a simple context-free language
+that Ford conjectured cannot be parsed with a PEG.
+PEGs can parse all languages
+that can be parsed with LL(k) or LR(k) parsers.
+
+PEGs are more composable
+than LL(k) or LR(k) CFGs;
+because they can’t handle ambiguity,
+it’s easy to predict the effect
+of adding new parsing rules to the grammar.
 
 A Minimal PEG Language
 ----------------------
@@ -607,7 +644,7 @@ with minimal differences between them:
 
 The outer one 
 needs to eat up trailing whitespace,
-since it might be followed by ` / ` or something,
+since it might be followed by `/` with space around it or something,
 while the inner one 
 should avoid eating up trailing whitespace,
 since it might be significant in JavaScript
@@ -1838,6 +1875,10 @@ To [Aristotle Pagaltzis](http://plasmasturm.org/)
 for innumerable improvements 
 to the readability and correctness
 of this document.
+
+To Andy Isaacson
+for further improvements
+in the readability of this document.
 
 <link rel="stylesheet" href="style.css" />
 <style type="text/css">
