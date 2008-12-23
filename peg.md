@@ -247,7 +247,7 @@ it is suspected that PEGs can’t parse
 all languages context-free grammars can.
 `S → a S a | a S b | b S a | b S b | a` 
 is a simple context-free language
-that Ford conjectured cannot be parsed with a PEG;
+which Ford conjectured cannot be parsed with a PEG;
 it describes strings of odd numbers of `a`s and `b`s
 in which the middle letter is an `a`.
 PEGs can parse all languages
@@ -258,6 +258,31 @@ than LL(k) or LR(k) CFGs;
 because PEGs can’t handle ambiguity,
 it’s easy to predict the effect
 of adding new parsing rules to the grammar.
+
+You can parse general CFGs
+with a backtracking approach like the PEG approach;
+the difference is that each nonterminal
+must be able to succeed multiple times 
+on the same input
+with different possible parses,
+in case something that follows it fails.
+Definite clause grammars in Prolog
+are one example of this strategy.
+In PEGs, once a nonterminal succeeds at some position,
+it throws away its backtracking state,
+so it can only produce at most one result at that position.
+As a consequence,
+even though there are PEGs that take exponential time to parse
+(if implemented the naïve way)
+CFGs with exponential-time parsing
+(again, if implemented the naïve way, as with DCGs)
+are much more common.
+
+(Allan Schiffman tells me
+that all you really need to do to make DCGs perform well
+is to put cuts in “the obvious places”,
+e.g. between statements.
+I haven’t tried it myself.)
 
 A Minimal PEG Language
 ----------------------
@@ -1590,10 +1615,11 @@ for innumerable improvements
 to the readability and correctness
 of this document.
 
-To Andy Isaacson
-and [Chris Hibbert] (http://pancrit.org/)
-for further improvements
-in the readability of this document.
+To Andy Isaacson,
+Allan Schiffman,
+[Chris Hibbert] (http://pancrit.org/)
+for further suggestions
+for the readability and content of this document.
 
 <link rel="stylesheet" href="style.css" />
 <style type="text/css">
