@@ -1519,7 +1519,7 @@ Here’s a PEG simply describing the same grammar as the above:
     list       <- ')' / read list.
 
 Instead of 33 lines of code, we have 8.
-In 17 lines,
+In 16 lines,
 we can get a real parser
 that returns a parse of the code:
 
