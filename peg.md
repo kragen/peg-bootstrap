@@ -1499,7 +1499,8 @@ than in LPEG:
 
 [Darius Bacon’s ichbins] [ichbins]
 is an inspiring small Lisp compiler;
-it can compile itself to C,
+it can compile itself to C
+with full run-time type-checking,
 even though
 it’s only a bit over six pages of code.
 Its recursive-descent parser
@@ -1566,6 +1567,15 @@ Here’s a PEG simply describing the same grammar as the above:
     list       <- ')' / read list.
 
 Instead of 33 lines of code, we have 8.
+Note that I’ve followed the kind of weird structure
+of the original parser:
+the closing parenthesis is considered part of the list contents,
+and the closing quote is considered part of the string contents.
+This simplifies the grammar slightly,
+and eliminates nearly all non-tail calls
+(except inside of `list`, and to `_`, and in distinguishing character categories)
+but I think it makes it a little less clear.
+
 In 16 lines,
 we can get a real parser
 that returns a parse of the code:
