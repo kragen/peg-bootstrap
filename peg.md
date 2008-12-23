@@ -145,13 +145,14 @@ A few things to notice:
     and playing Cheese Shop with the next character.
     (“Have you got a 0?” “No.” 
     “How about a 1?” “No.” ...)
-    It turns out there are ways to solve this.
+    It turns out there are ways to solve this,
+    although I don’t explore them in this document.
 3.  They have trouble with “left recursion”,
     which is where the first thing in a “foo” (say, `expression`)
     can be a smaller “foo”.
 
-There’s one more big feature of PEGs,
-which is the ability to do lookahead.
+There’s one more big feature of PEGs:
+the ability to do lookahead.
 As an example, in C, 
 a comment begins at a `/*`
 and continues until the next `*/`.
@@ -1394,6 +1395,11 @@ TODO
 
 Other Interesting PEGs
 ----------------------
+
+Here’s some nifty stuff you can do
+with the one-page parser generator described above.
+
+### CSV files ###
 
 [Ierusalemschy][ier] gives this grammar
 for parsing Excel-style CSV files:
