@@ -160,8 +160,8 @@ That shrinks the grammar considerably,
 while significantly expanding 
 the expressiveness of the grammar language it describes.
 
-Adding Actions
---------------
+Adding Result Expressions
+-------------------------
 
 In theory, the grammar as written could be useful.
 It’s expressive enough to describe
