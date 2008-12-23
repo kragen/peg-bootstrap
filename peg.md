@@ -1857,6 +1857,56 @@ TODO
   zero_or_more <- loopbody: body -> (body).
   one_or_more <- loopbody: body -> (body + 'if ...').
 
+Other Interesting PEGs
+----------------------
+
+[Ierusalemschy][ier] gives this grammar
+for parsing Excel-style CSV files:
+
+    (in the LPEG notation with captures)
+    record <- (<field> (',' <field>)*)->{} (%nl / !.)
+    field <- <escaped> / <nonescaped>
+    nonescaped <- { [^,"%nl]* }
+    escaped <- '"' {~ ([^"] / '""'->'"')* ~} '"'
+
+The `{}` capture pieces of text
+and `{~ ~}` capture and replace them.
+`*` is for repetition, 
+`%nl` is `'\n'`,
+`""` are equivalent to `''`,
+`.` is our `char`,
+`[abc]` is a character class equivalent to `( 'a' / 'b' / 'c' )`,
+and `->{}` means “make a list of the results”.
+In the notation I’ve used for PEGs here,
+without repetition features,
+this looks like this:
+
+    (in csv.peg)
+    record <- d: (f: field ',' r: record -> ([f].concat(r)) 
+                / f: field               -> ([f])) ('\n' / !char)
+              -> (d).
+    field <- escaped / nonescaped.
+    normal_char <- !',' !'"' !'\n' char.
+    nonescaped <- c: normal_char s: nonescaped -> (c + s) / normal_char.
+    escaped_inner_char <- !'"' char / '""' -> ('"').
+    escaped_inner <- c: escaped_inner_char s: escaped_inner -> (c + s) 
+                   / escaped_inner_char.
+    escaped <- '"' s: escaped_inner '"' -> (s).
+
+That’s 2½ times as big,
+which is unreasonable.
+If we have `*` repetition that makes JavaScript Arrays,
+we can write it with only a bit more ugliness
+than in LPEG:
+
+    (in csvstar.peg)
+    record <- h: field t: (',' field)* ('\n' / !char) -> ([h].concat(t)).
+    field <- escaped / nonescaped.
+    nonescaped <- s: (!',' !'"' !'\n' char)* -> (s.join('')).
+    escaped <- '"' s: (!'"' char / '""' -> ('"'))* '"' -> (s.join('')).
+
+[ier]: http://www.inf.puc-rio.br/~roberto/docs/peg.pdf "A Text Pattern-Matching Tool based on Parsing Expression Grammars, 2008, SP&amp;E"
+
 Thanks
 ------
 
