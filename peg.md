@@ -6,16 +6,18 @@ about parsing expression grammars and packrat parsers,
 and I thought it would be fun to implement them
 and see how easy they really were.
 
-It turns out they can be fairly easy;
+It turns out they’re not that hard;
 this document contains a one-page PEG parser generator
 that generates PEG parsers in JavaScript,
-along with an explanation of how it works.
+along with an explanation of how it works,
+and some example applications.
 If you’ve ever thought
 that writing a compiler was deep magic
 because parsing would take you way too long to understand,
 this should show you
-that writing a compiler can be simple,
-if you already know how to program.
+that writing a compiler can be simple!
+(At least,
+if you already know how to program.)
 
 [ford]: http://pdos.csail.mit.edu/~baford/packrat/thesis/ "Packrat Parsing: a Practical Linear-Time Algorithm with Backtracking"
 
@@ -23,7 +25,189 @@ What Are PEGs?
 --------------
 
 A PEG is a formal language description
-which describes how to *parse* a language,
+which describes how to parse some language —
+like a regular expression,
+it describes the structure of some set of strings.
+
+## A Gentle Introduction by Example ##
+
+Here’s a simple PEG
+which describes simple arithmetic expressions
+with no operator precedence:
+
+    (in an example arithmetic parser)
+    expression <- ('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')+ 
+                  ( ('+' / '-' / '*' / '×' / '/' / '÷') expression / ).
+
+This says that an `expression` is
+one or more digits,
+followed by either an operator and another `expression`,
+or nothing.
+The parentheses are used for grouping;
+apostrophes `''` are used for literal text;
+slashes `/` are used for choice 
+(“try parsing this, and if it doesn’t work out, try that”);
+a left arrow `<-` is used to attach a name 
+(called a “nonterminal”)
+to a parsing rule;
+and `x+` means “one or more of `x`”.
+
+So, to parse `2*30+4` as an `expression`,
+first we try matching a `0` at the beginning,
+where there’s a `2`;
+that doesn’t work, so we try a `1`;
+that doesn't work, so we try a `2`.
+That does work, so then we try for repetition,
+looking for a second digit
+at the `*`.
+That doesn’t work out (after ten tries), so we zoom along and look for a `+`.
+The `*` isn’t a `+`, so after a couple of tries,
+we find out it’s a `*`.
+Then we try parsing a nested `expression` starting at the `3`.
+This time, we match the `3` after three tries,
+and then when we look for a second digit, we find a `0`;
+the third try fails, so we look for a `+`, and find it;
+then we look for a second nested `expression`.
+We match a `4` after four tries,
+but we don’t find another digit after it
+(because there isn’t anything after it),
+so we try to find an operator after it,
+which doesn’t work,
+so we try to find nothing after it 
+(the emptiness after the `/` after `expression`)
+which works,
+and we’re done.
+
+Notice that this doesn’t respect operator precedence
+(it gives `2*(30+4)` rather than `(2*30)+4`),
+and also associates to the right.
+
+Here’s an example PEG
+that handles operator precedence and parentheses,
+although not associativity:
+
+    (in an example arithmetic parser with precedence)
+    expression <- term ('+'/'-') expression / term.
+    term       <- atom ('*' / '×' / '/' / '÷') term / atom.
+    atom       <- number / '(' expression ')'.
+    number     <- ('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')+.
+
+If we try to parse the same `2*30+4` with this grammar,
+we get down to `number` and parse the `2`,
+so `atom` succeeds with the `2`,
+and then `term` sucks up the `*` 
+and then looks for an inner `term` at the `3`.
+Then `number` parses `30`,
+and the inner `term` looks for one of `*×/÷` after it,
+which doesn’t work out since what’s after it is a `+`,
+so it gives up on its first alternative and tries to parse
+just an `atom` starting at the `3`,
+rather than an `atom` followed by an operator and another term.
+Then `atom` sucks up the `30` just like before,
+and the inner `term` finishes,
+and then the outer `term` finishes,
+and it’s up to `expression` to deal with the `+4` bit,
+which it does in the predictable way.
+
+It won’t handle `40-1-1` as `(40-1)-1` as you might hope, though.
+If you try to rewrite `expression` to handle this
+as `expression ('+'/'-') term / term`,
+you run into trouble —
+the first thing `expression` does
+is try to parse an `expression`,
+so you get into an infinite loop.
+
+Most practical PEG systems
+let you abbreviate things like
+`('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')`
+as `[0-9]`,
+but the one in this document doesn’t.
+
+That covers most of the stuff PEGs can do.
+A few things to notice:
+
+1.  They’re a little more verbose than regular expressions 
+    but a lot more powerful at understanding structure.
+    And, like with regexps, 
+    you can do a hell of a lot
+    in a few lines of code.
+2.  The obvious implementation is pretty slow;
+    it spends a lot of time re-parsing
+    things it’s already parsed 
+    and playing Cheese Shop with the next character.
+    (“Have you got a 0?” “No.” 
+    “How about a 1?” “No.” ...)
+    It turns out there are ways to solve this.
+3.  They have trouble with “left recursion”,
+    which is where the first thing in a “foo” (say, `expression`)
+    can be a smaller “foo”.
+    There are different ways to ameliorate this problem
+    by enhancing the parser generator,
+    but in general,
+    you can always figure out a way
+    to modify the grammar
+    to remove left recursion.
+
+There’s one more big feature of PEGs,
+which is the ability to do lookahead.
+As an example, in C, 
+a comment begins at a `/*`
+and continues until the next `*/`.
+But you can have `*` and `/` and even `/*` inside the comment,
+as long as there isn't a `*/`.
+Doing this in a regexp is a real pain and the result is unreadable.
+You end up with a regexp like `\/\*([^*]|\*[^/])*\*\/`,
+assuming you have to backslash your slashes.
+In a PEG, it looks like this:
+
+    (in the C comment example PEG)
+    comment <- '/*' (!'*/' char)* '*/'.
+
+That is, to parse a comment, first parse a `/*`,
+then as long as the next thing isn’t a `*/`, try to parse a `char`,
+and then parse a `*/`.
+(The `*` means “zero or more”,
+just as `+` means “one or more”.)
+You can write the same thing 
+with Perl’s enhanced regexp features: `qr|/\*(?:(?!\*/).)*\*/|`,
+and it’s only slightly shorter,
+but I think it's not as clear.
+
+You can use this magic PEG power
+for a variety of things that are traditionally painful.
+For example, most programming languages have keywords,
+which look like variables (or other identifiers)
+but are treated differently syntactically.
+In a PEG, you can write this:
+
+    (in the keyword example PEG)
+    keyword = ('if' / 'while' / 'for' / otherkeyword) !idchar.
+    identifier = !keyword idstartchar idchar*.
+
+This first specifies that a `keyword`
+is one of the specified words
+as long as it's not followed by an `idchar`;
+then it specifies that when you’re trying to parse an `identifier`,
+first try to parse a `keyword`,
+and if that succeeds,
+then parsing the `identifier` should fail;
+but if there's no `keyword`,
+go ahead and try to parse an `idstartchar`
+followed by zero or more `idchar`s.
+
+Note that we throw away the results
+of trying to parse the `keyword` —
+we were only trying it in order to see 
+if we shouldn’t do something else.
+
+## If You’ve Taken a Compilers Class Lately ##
+
+I thought I’d stick this section in
+for the benefit of folks who are all up on the theory.
+The rest of the document
+doesn’t depend on it.
+
+PEGs specify how to *parse* a language,
 by contrast with context-free grammars,
 which primarily describe how to *generate* sentences of a language.
 This difference
@@ -32,6 +216,8 @@ they can be straightforwardly converted
 into simple recursive-descent parsers
 performing limited backtracking,
 with each nonterminal becoming a parsing function.
+It also probably makes it much more difficult
+to prove properties of the language recognized by a PEG.
 
 PEGs can parse some languages
 that context-free grammars can’t,
@@ -46,7 +232,9 @@ it is suspected that PEGs can’t parse
 all languages context-free grammars can.
 `S → a S a | a S b | b S a | b S b | a` 
 is a simple context-free language
-that Ford conjectured cannot be parsed with a PEG.
+that Ford conjectured cannot be parsed with a PEG;
+it describes strings of odd numbers of `a`s and `b`s
+in which the middle letter is an `a`.
 PEGs can parse all languages
 that can be parsed with LL(k) or LR(k) parsers.
 
@@ -70,6 +258,7 @@ and nonterminals (written as bare words `foo`).
 Here’s a relatively minimal grammar
 describing a notation for a grammar
 with these features,
+the same one I used in the “Gentle Introduction” section,
 written in terms of itself:
 
     (in a minimal parsing expression grammar)
@@ -1952,5 +2141,5 @@ p code {background-color: #f0f0f0; border: 1px solid #e3e3e3; padding: 1px;}
  LocalWords:  Schorre TransMoGrifier McIlroy Romuald Ireneus Scibor Marchocki
  LocalWords:  TMGL Alessandro Warth Yoshiki Ohshima OMeta Pagaltzis Isaacson px
  LocalWords:  rel stylesheet href css Ierusalemschy LPEG csvstar nonescaped CSV
- LocalWords:  csv concat
+ LocalWords:  csv concat otherkeyword shouldn
 --> 
