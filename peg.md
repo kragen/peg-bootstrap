@@ -116,12 +116,20 @@ you run into trouble —
 the first thing `expression` does
 is try to parse an `expression`,
 so you get into an infinite loop.
+There are different ways to ameliorate this problem
+by enhancing the parser generator,
+but in general,
+you can always figure out a way
+to modify the grammar
+to remove this “left recursion”;
+it just makes it a little more complicated
+to handle the results of the parser.
 
-Most practical PEG systems
+(As an aside, most practical PEG systems
 let you abbreviate things like
 `('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')`
 as `[0-9]`,
-but the one in this document doesn’t.
+but the one in this document doesn’t.)
 
 That covers most of the stuff PEGs can do.
 A few things to notice:
@@ -141,12 +149,6 @@ A few things to notice:
 3.  They have trouble with “left recursion”,
     which is where the first thing in a “foo” (say, `expression`)
     can be a smaller “foo”.
-    There are different ways to ameliorate this problem
-    by enhancing the parser generator,
-    but in general,
-    you can always figure out a way
-    to modify the grammar
-    to remove left recursion.
 
 There’s one more big feature of PEGs,
 which is the ability to do lookahead.
