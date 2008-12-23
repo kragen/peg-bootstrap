@@ -10,6 +10,12 @@ It turns out they can be fairly easy;
 this document contains a one-page PEG parser generator
 that generates PEG parsers in JavaScript,
 along with an explanation of how it works.
+If you’ve ever thought
+that writing a compiler was deep magic
+because parsing would take you way too long to understand,
+this should show you
+that writing a compiler can be simple,
+if you already know how to program.
 
 [ford]: http://pdos.csail.mit.edu/~baford/packrat/thesis/ "Packrat Parsing: a Practical Linear-Time Algorithm with Backtracking"
 
@@ -28,10 +34,15 @@ performing limited backtracking,
 with each nonterminal becoming a parsing function.
 
 PEGs can parse some languages
-that context-free grammars can’t;
-because they can’t handle ambiguity,
+that context-free grammars can’t,
+such as the language `a`<sup>n</sup>`b`<sup>n</sup>`c`<sup>n</sup>,
+that is,
+some number of `a`s,
+followed by the same number of `b`s,
+followed by the same number of `c`s.
+However, because PEGs can’t handle ambiguity,
 and because there’s a linear-time parsing algorithm for them,
-it is suspected that they can’t parse
+it is suspected that PEGs can’t parse
 all languages context-free grammars can.
 `S → a S a | a S b | b S a | b S b | a` 
 is a simple context-free language
@@ -41,7 +52,7 @@ that can be parsed with LL(k) or LR(k) parsers.
 
 PEGs are more composable
 than LL(k) or LR(k) CFGs;
-because they can’t handle ambiguity,
+because PEGs can’t handle ambiguity,
 it’s easy to predict the effect
 of adding new parsing rules to the grammar.
 
@@ -829,7 +840,7 @@ the innermost choice really parses as
 `choice(sequence(string('\\n'), ''), sequence(string('\\t'), ''))`
 but I'm hoping that doesn’t matter for now.
 
-Then at the end I can combine all of the vars
+Then at the end I can combine all of the variables
 into a grammar.
 
 First I need the functions, though.
