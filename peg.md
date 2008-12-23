@@ -152,7 +152,7 @@ A few things to notice:
     can be a smaller “foo”.
 
 There’s one more big feature of PEGs:
-the ability to do lookahead.
+the ability to do negative lookahead, or negation.
 As an example, in C, 
 a comment begins at a `/*`
 and continues until the next `*/`.
@@ -175,6 +175,18 @@ You can write the same thing
 with Perl’s enhanced regexp features: `qr|/\*(?:(?!\*/).)*\*/|`,
 and it’s only slightly shorter,
 but I think it's not as clear.
+
+You might think that in `!'*/' char`,
+the negation of `'*/'` somehow *modifies* `char`.
+But it doesn’t, really;
+it just means that the parse fails
+at points in the input
+where `'*/'` can match,
+so `char`
+doesn’t get a chance to match there.
+Instead, we backtrack from matching the `'*/'`,
+break out of the loop,
+and get a chance to match the `'*/'` on the outside.
 
 You can use this magic PEG power
 for a variety of things that are traditionally painful.
@@ -257,6 +269,9 @@ ordered choice or alternation `/`,
 concatenation or sequencing (denoted by juxtaposition),
 terminal strings (written in single quotes `''`), 
 and nonterminals (written as bare words `foo`).
+(We can leave out repetition `*` and `+`,
+because as shown below,
+we can synthesize them.)
 
 Here’s a relatively minimal grammar
 describing a notation for a grammar
@@ -291,15 +306,15 @@ is not really part of the name.)
 the language doesn’t treat it specially.
 I used to call it `s` but it was distracting.)
 
-There are several cases of the pattern `foos <- foo foos / .`,
-which means `foos` is zero or more things that match `foo`.
+There are three cases of the pattern `group <- item group / .`,
+which means `group` is zero or more things that match `item`.
 Because PEGs are greedy and don’t backtrack after returning,
-`foos` will only ever parse
-the maximum possible number of `foo` items.
-It’s not possible for a parsing failure after the `foos`
-to cause `foos` to backtrack and return a smaller number of `foo` objects,
+`group` will only ever parse
+the maximum possible number of `item` items.
+It’s not possible for a parsing failure after the `group`
+to cause `group` to backtrack and return a smaller number of `item` objects,
 the way it could in a parser for a context-free grammar,
-although a parsing failure inside the last `foo` will indeed do so.
+although a parsing failure inside the last `item` will indeed do so.
 This allows us to get by
 without a separate scanner for this grammar!
 One minor variation of this pattern
@@ -1570,12 +1585,13 @@ to Alessandro Warth and Yoshiki Ohshima for developing OMeta
 and showing that PEGs can be extended
 to a wide variety of non-parsing tasks.
 
-To [Aristotle Pagaltzis](http://plasmasturm.org/)
+To [Aristotle Pagaltzis] (http://plasmasturm.org/)
 for innumerable improvements 
 to the readability and correctness
 of this document.
 
 To Andy Isaacson
+and [Chris Hibbert] (http://pancrit.org/)
 for further improvements
 in the readability of this document.
 
