@@ -1448,6 +1448,103 @@ than in LPEG:
 
 [ier]: http://www.inf.puc-rio.br/~roberto/docs/peg.pdf "A Text Pattern-Matching Tool based on Parsing Expression Grammars, 2008, SP&amp;E"
 
+### ichbins ###
+
+[Darius Bacon’s ichbins] [ichbins]
+is an inspiring small Lisp compiler;
+it can compile itself to C,
+even though
+it’s only a bit over six pages of code.
+Its recursive-descent parser
+is a model of clarity,
+as recursive-descent parsers go:
+
+    (in the parser in ichbins.scm)
+    (define (read)
+      (read-dispatch (skip-blanks (read-char))))
+
+    (define (skip-blanks c)
+      (cond ((memq? c whitespace-chars) (skip-blanks (read-char)))
+            ('t c)))
+
+    (define whitespace-chars (cons linefeed " 	"))
+    (define non-symbol-chars "\"\\(')")
+
+    (define eof-object '("eof"))
+
+    (define (read-dispatch c)
+      (cond ((eq? c 'f) eof-object)
+            ((eq? c \\) (read-char-literal (read-char)))
+            ((eq? c \") (read-string (read-char)))
+            ((eq? c \() (read-list))
+            ((eq? c \') (cons 'quote (cons (read) '())))
+            ((eq? c \)) (error "Unbalanced parentheses"))
+            ('t (intern (cons c (read-symbol (peek-char)))))))
+
+    (define (read-char-literal c)
+      (cond ((eq? c 'f) (error "EOF in character literal"))
+            ('t c)))
+
+    (define (read-string c)
+      (cond ((eq? c 'f) (error "Unterminated string literal"))
+            ((eq? c \") '())
+            ((eq? c \\) (cons (read-char) (read-string (read-char))))
+            ('t (cons c (read-string (read-char))))))
+
+    (define (read-symbol c)
+      (cond ((memq? c whitespace-chars) '())
+            ((memq? c non-symbol-chars) '())
+            ('t (read-char) (cons c (read-symbol (peek-char))))))
+
+    (define (read-list)
+      (read-list-dispatch (skip-blanks (read-char))))
+
+    (define (read-list-dispatch c)
+      (cond ((eq? c 'f) (error "Unterminated list"))
+            ((eq? c \)) '())
+            ('t (cons (read-dispatch c) (read-list)))))
+
+But with a language suited for parsing,
+we can do better.
+Here’s a PEG simply describing the same grammar as the above:
+
+    (in ichbins.peg)
+    whitespace <- '\n' / ' ' / '\t'.
+    _          <- whitespace _ / .
+    non-symbol <- '"' / '\\' / '(' / '\'' / ')'.
+    read       <- _ sexp.
+    sexp       <- '\\' char / '"' string / '(' list / '\'' read / symbol.
+    string     <- '"' / (!'\\' char / '\\' char) string.
+    symbol     <- !whitespace !non-symbol char / .
+    list       <- ')' / read list.
+
+Instead of 33 lines of code, we have 8.
+In 17 lines,
+we can get a real parser
+that returns a parse of the code:
+
+    (in ichbins-parser.peg)
+    whitespace <- '\n' / ' ' / '\t'.
+    _          <- whitespace _ / .
+    nonsymbol  <- '"' / '\\' / '(' / '\'' / ')'.
+    read       <- _ sexp.
+    sexp       <- '\\' c: char                               -> ({char: c})
+                / '"' string 
+                / '(' list 
+                / '\'' s: read                               -> (['quote', s])
+                / s: symbol                                  -> ({symbol: s}).
+
+    string     <- '"'                                        -> ('') 
+                / a: (!'\\' char / 
+                       '\\' b: char -> ('\\' + b)) t: string -> (a + t).
+    symbol     <- !whitespace !nonsymbol a: char b: symbol   -> (a + b) 
+                /                                            -> ('').
+    list       <- ')'                                        -> ([])
+                / a: read b: list                            -> ([a].concat(b)).
+
+
+[ichbins]: http://www.accesscom.com/~darius/???XXX "ichbins: I can hardly believe it’s not Scheme"
+
 Thanks
 ------
 
