@@ -29,7 +29,7 @@ which describes how to parse some language —
 like a regular expression,
 it describes the structure of some set of strings.
 
-## A Gentle Introduction by Example ##
+### A Gentle Introduction by Example ###
 
 Here’s a simple PEG
 which describes simple arithmetic expressions
@@ -202,7 +202,7 @@ of trying to parse the `keyword` —
 we were only trying it in order to see 
 if we shouldn’t do something else.
 
-## If You’ve Taken a Compilers Class Lately ##
+### If You’ve Taken a Compilers Class Lately ###
 
 I thought I’d stick this section in
 for the benefit of folks who are all up on the theory.
