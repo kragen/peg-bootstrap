@@ -1945,3 +1945,12 @@ in the readability of this document.
 <style type="text/css">
 p code {background-color: #f0f0f0; border: 1px solid #e3e3e3; padding: 1px;}
 </style>
+<!--
+ LocalWords:  ve LL TDPL foo doesn foos ll expr exprcontents op aren pos val sp
+ LocalWords:  var substr iff weren YASnippet ASTs stringcontents stringchar rv
+ LocalWords:  namechar nseq nchoice ngrammar js TODO memoization loopbody TMG
+ LocalWords:  Schorre TransMoGrifier McIlroy Romuald Ireneus Scibor Marchocki
+ LocalWords:  TMGL Alessandro Warth Yoshiki Ohshima OMeta Pagaltzis Isaacson px
+ LocalWords:  rel stylesheet href css Ierusalemschy LPEG csvstar nonescaped CSV
+ LocalWords:  csv concat
+--> 
