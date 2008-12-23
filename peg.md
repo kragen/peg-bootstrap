@@ -1427,11 +1427,18 @@ TODO
 - memoization
 - performance measurement
 - profiling
-- re-add repetition `+` and `*`
+- re-add repetition `+` and `*` (in a later version)
 - factor out loopbody?  like,  
   loopbody <- term: body -> (loop body code).  
   zero_or_more <- loopbody: body -> (body).
   one_or_more <- loopbody: body -> (body + 'if ...').
+- how about removing `()` grouping?  It leaves “a PEG describing
+  results” (and “the metacircular compiler-compiler”) one line shorter
+  and one line longer, but perhaps it could simplify backtracking by
+  eliminating the explicit stack?  Because then each parsing function
+  would only need to contain one level of backtracking for `/` and one
+  for `!` — oh, well, hmm, `!` might be tricky if we want to support
+  positive lookahead too.  Probably better to leave the stack in.
 
 Other Interesting PEGs
 ----------------------
