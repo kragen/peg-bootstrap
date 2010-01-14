@@ -11,7 +11,11 @@ import markdown, BeautifulSoup, sys, os.path
 
 def render(text):
     "Given Markdown input as a string, produce an HTML document as a string."
-    body = str(markdown.Markdown(text))
+    md = markdown.Markdown(text.decode('utf-8'))
+    try:
+        body = md.convert()
+    except AttributeError: 
+        body = str(md)
     soup = BeautifulSoup.BeautifulSoup(body)
 
     headers = soup('h1')
@@ -23,7 +27,7 @@ def render(text):
     return '''<html><head><title>%s</title>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     </head>
-    <body>%s</body></html>''' % (title, body)
+    <body>%s</body></html>''' % (title.decode('utf-8'), body)
 
 def process(infile):
     "Given a filename of Markdown input, create an HTML file as output."
@@ -36,7 +40,7 @@ def process(infile):
 
     outfiletmp = outfile + '.tmp'
     fo = file(outfiletmp, 'w')
-    fo.write(render(file(infile).read()))
+    fo.write(render(file(infile).read()).encode('utf-8'))
     fo.close()
 
     os.rename(outfiletmp, outfile)  # atomic replace; won't work on Win32
