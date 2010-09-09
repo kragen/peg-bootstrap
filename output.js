@@ -24,6 +24,7 @@ function parse_sp(input, pos) {
   }
   return state;
 }
+
 function parse__(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -41,6 +42,7 @@ function parse__(input, pos) {
   }
   return state;
 }
+
 function parse_rule(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -61,11 +63,11 @@ function parse_rule(input, pos) {
   state = parse__(input, state.pos);
   if (state) {
   if (state) state.val = ["function parse_", n, "(input, pos) {\n",
-                  '  var state = { pos: pos };\n',
-                  '  var stack = [];\n',
-                  body, 
-                  '  return state;\n',
-               "}\n"].join('');
+                   '  var state = { pos: pos };\n',
+                   '  var stack = [];\n',
+                   body, 
+                   '  return state;\n',
+                "}\n"].join('');
   }
   }
   }
@@ -75,6 +77,7 @@ function parse_rule(input, pos) {
   }
   return state;
 }
+
 function parse_grammar(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -116,6 +119,7 @@ function parse_grammar(input, pos) {
   }
   return state;
 }
+
 function parse_meta(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -196,6 +200,7 @@ function parse_meta(input, pos) {
   }
   return state;
 }
+
 function parse_name(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -219,6 +224,7 @@ function parse_name(input, pos) {
   }
   return state;
 }
+
 function parse_namechar(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -247,6 +253,7 @@ function parse_namechar(input, pos) {
   }
   return state;
 }
+
 function parse_term(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -291,6 +298,7 @@ function parse_term(input, pos) {
   }
   return state;
 }
+
 function parse_nonterminal(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -299,12 +307,12 @@ function parse_nonterminal(input, pos) {
   if (state) {
   state = parse__(input, state.pos);
   if (state) {
-  if (state) state.val = ['  state = parse_', n, '(input, state.pos);\n'].join('')
-;
+  if (state) state.val = ['  state = parse_', n, '(input, state.pos);\n'].join('');
   }
   }
   return state;
 }
+
 function parse_labeled(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -328,6 +336,7 @@ function parse_labeled(input, pos) {
   }
   return state;
 }
+
 function parse_sequence(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -358,6 +367,7 @@ function parse_sequence(input, pos) {
   }
   return state;
 }
+
 function parse_string(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -377,6 +387,7 @@ function parse_string(input, pos) {
   }
   return state;
 }
+
 function parse_stringcontents(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -437,6 +448,7 @@ function parse_stringcontents(input, pos) {
   }
   return state;
 }
+
 function parse_choice(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -452,13 +464,13 @@ function parse_choice(input, pos) {
   if (state) var b = state.val;
   if (state) {
   if (state) state.val = ['  stack.push(state);\n',
-     a,
-     '  if (!state) {\n',
-     '    state = stack.pop();\n',
-     b,
-     '  } else {\n',
-     '    stack.pop();\n', // discard unnecessary saved state
-     '  }\n'].join('');
+                    a,
+                    '  if (!state) {\n',
+                    '    state = stack.pop();\n',
+                    b,
+                    '  } else {\n',
+                    '    stack.pop();\n', // discard unnecessary saved state
+                    '  }\n'].join('');
   }
   }
   }
@@ -473,6 +485,7 @@ function parse_choice(input, pos) {
   }
   return state;
 }
+
 function parse_negation(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -484,18 +497,19 @@ function parse_negation(input, pos) {
   if (state) var t = state.val;
   if (state) {
   if (state) state.val = ['  stack.push(state);\n',
-     t,
-     '  if (state) {\n',
-     '    stack.pop();\n',
-     '    state = null;\n',
-     '  } else {\n',
-     '    state = stack.pop();\n',
-     '  }\n'].join('');
+                  t,
+                  '  if (state) {\n',
+                  '    stack.pop();\n',
+                  '    state = null;\n',
+                  '  } else {\n',
+                  '    state = stack.pop();\n',
+                  '  }\n'].join('');
   }
   }
   }
   return state;
 }
+
 function parse_result_expression(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -506,13 +520,13 @@ function parse_result_expression(input, pos) {
   state = parse_expr(input, state.pos);
   if (state) var result = state.val;
   if (state) {
-  if (state) state.val = ['  if (state) state.val = ', result, ';\n'].join('')
-;
+  if (state) state.val = ['  if (state) state.val = ', result, ';\n'].join('');
   }
   }
   }
   return state;
 }
+
 function parse_expr(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -535,6 +549,7 @@ function parse_expr(input, pos) {
   }
   return state;
 }
+
 function parse_inner(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -554,6 +569,7 @@ function parse_inner(input, pos) {
   }
   return state;
 }
+
 function parse_exprcontents(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -606,6 +622,7 @@ function parse_exprcontents(input, pos) {
   }
   return state;
 }
+
 function parse_parenthesized(input, pos) {
   var state = { pos: pos };
   var stack = [];
@@ -628,6 +645,7 @@ function parse_parenthesized(input, pos) {
   }
   return state;
 }
+
 function parse_char(input, pos) {
   if (pos >= input.length) return null;
   return { pos: pos + 1, val: input[pos] };

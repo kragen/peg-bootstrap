@@ -40,13 +40,13 @@
 <textarea id="grammar" cols="80" rows="66">
 sp <- ' ' / '\n' / '\t'.
 _  <- sp _ / .
-rule    <- n: name _ '<-'_ body: choice '.'_
-           -> (["function parse_", n, "(input, pos) {\n",
-                  '  var state = { pos: pos };\n',
-                  '  var stack = [];\n',
-                  body, 
-                  '  return state;\n',
-               "}\n"].join('')).
+rule    <- n: name _ '<-'_ body: choice '.'_ ->
+               (["function parse_", n, "(input, pos) {\n",
+                   '  var state = { pos: pos };\n',
+                   '  var stack = [];\n',
+                   body, 
+                   '  return state;\n',
+                "}\n"].join('')).
 grammar <- _ r: rule g: grammar -> (r + "\n" + g)
          / _ r: rule -> (r + "\n"
                + 'function parse_char(input, pos) {\n'
@@ -63,42 +63,45 @@ meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
 name     <- c: namechar n: name -> (c + n) / namechar.
 namechar <- !meta !sp char.
 term <- labeled / nonterminal / string / negation / parenthesized.
-nonterminal <- n: name _ -> (
-    ['  state = parse_', n, '(input, state.pos);\n'].join('')
-).
-labeled <- label: name _ ':'_ value: term -> (
-    [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
-sequence <- foo: term  bar: sequence -> (
-                     [foo, '  if (state) {\n', bar, '  }\n'].join(''))
+nonterminal <- n: name _ ->
+                   (['  state = parse_', n, '(input, state.pos);\n'].join(''))
+               .
+labeled <- label: name _ ':'_ value: term ->
+               ([value, '  if (state) var ', label, ' = state.val;\n'].join(''))
+           .
+sequence <- foo: term  bar: sequence -> 
+                   ([foo, '  if (state) {\n', bar, '  }\n'].join(''))
                / result_expression
                / -> ('').
-string <- '\'' s: stringcontents '\''_ -> (
-    ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
+string <- '\'' s: stringcontents '\''_ ->
+             (["  state = literal(input, state.pos, '", s, "');\n"].join(''))
+          .
 stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + s)
                 / b: '\\'       c: char  s: stringcontents -> (b + c + s)
                 / -> ('').
-choice <- a: sequence '/'_  b: choice -> (
-    ['  stack.push(state);\n',
-     a,
-     '  if (!state) {\n',
-     '    state = stack.pop();\n',
-     b,
-     '  } else {\n',
-     '    stack.pop();\n', // discard unnecessary saved state
-     '  }\n'].join(''))
+choice <- a: sequence '/'_  b: choice ->
+                  (['  stack.push(state);\n',
+                    a,
+                    '  if (!state) {\n',
+                    '    state = stack.pop();\n',
+                    b,
+                    '  } else {\n',
+                    '    stack.pop();\n', // discard unnecessary saved state
+                    '  }\n'].join(''))
               / sequence.
-negation <- '!'_ t: term -> (
-    ['  stack.push(state);\n',
-     t,
-     '  if (state) {\n',
-     '    stack.pop();\n',
-     '    state = null;\n',
-     '  } else {\n',
-     '    state = stack.pop();\n',
-     '  }\n'].join('')).
-result_expression <- '->'_ result: expr -> (
-    ['  if (state) state.val = ', result, ';\n'].join('')
-).
+negation <- '!'_ t: term ->
+                (['  stack.push(state);\n',
+                  t,
+                  '  if (state) {\n',
+                  '    stack.pop();\n',
+                  '    state = null;\n',
+                  '  } else {\n',
+                  '    state = stack.pop();\n',
+                  '  }\n'].join(''))
+            .
+result_expression <- '->'_ result: expr ->
+                         (['  if (state) state.val = ', result, ';\n'].join(''))
+                     .
 expr         <- '('_ e: exprcontents ')'_ -> (e).
 inner        <- '('_ e: exprcontents ')'  -> ('(' + e + ')').
 exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)

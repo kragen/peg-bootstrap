@@ -18,6 +18,85 @@ So, here’s the plan:
 * Switch over to using it instead of the simpler Python version. (done)
 
 * Take advantage of its multi-versioning functionality to enable the parser to generate Lua code.
+   
+** Whoa. Well, figure out what to do first.
+
+I could add a layer of indirection for all parsers, to enable easy
+   language changes, but I’m not sure that’s really a good idea. Or I
+   could factor out the emission statements into functions that all go
+   into <<support code>>; plenty of languages have the same
+   function-call syntax.  Or I could try to split each rule into a
+   <<rule production>> and <<rule effect>>, but I think that's likely
+   to be a real pain.
+
+It would sure be nice to have an automated test to verify that I don’t
+   break this stuff as I refactor it.
+
+Hmm. Would it really be that hard to just write JS to produce a Lua
+   version? It would certainly be easier than factoring things out
+   this way.
+   
+There are only 20 result expressions that might have to be changed,
+   though.  And only some of the ones that have the type “JS
+   expression to return a string of JS code” actually have to be
+   changed: rule, nonterminal, labeled, sequence_1, string, choice,
+   negation, result_expression. Eight in all.  Stringcontents_2 might
+   have to be changed for some languages but I think it is probably
+   okay for Lua.
+
+So the idea is that parse_grammar should produce a Lua string instead
+   of a JS string, and it can do so by being an invoked lambda
+   expression `(function(){return foo;})()` and containing eight
+   functions that can be redefined to produce Lua code instead of JS
+   code (still as JS expressions, though).
+
+Alternatively, those eight things could be named blocks of their own,
+   without being factored into functions. Here they are:
+   
+               -> (["function parse_", n, "(input, pos) {\n",
+                      <<function prologue>>
+                      body, 
+                      <<function epilogue>>
+                   "}\n"].join('')).
+        ['  state = parse_', n, '(input, state.pos);\n'].join('')
+    '  var state = { pos: pos };\n',     # in function prologue
+        [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
+    '  return state;\n',    # in function epilogue
+                         [foo, '  if (state) {\n', bar, '  }\n'].join(''))
+        ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
+    '  var stack = [];\n', # in function prologue
+        ['  stack.push(state);\n',
+         a,
+         '  if (!state) {\n',
+         '    state = stack.pop();\n',
+         b,
+         '  } else {\n',
+         '    stack.pop();\n', // discard unnecessary saved state
+         '  }\n'].join(''))
+        ['  stack.push(state);\n',
+         t,
+         '  if (state) {\n',
+         '    stack.pop();\n',
+         '    state = null;\n',
+         '  } else {\n',
+         '    state = stack.pop();\n',
+         '  }\n'].join('')).
+        ['  if (state) state.val = ', result, ';\n'].join('')
+
+Oh, and the support code:
+
+    + 'function parse_char(input, pos) {\n'
+    + '  if (pos >= input.length) return null;\n'
+    + '  return { pos: pos + 1, val: input[pos] };\n'
+    + '}\n'
+    + 'function literal(input, pos, string) {\n'
+    + '  if (input.substr(pos, string.length) == string) {\n'
+    + '    return { pos: pos + string.length, val: string };\n'
+    + '  } else return null;\n'
+    + '}\n'
+
+So that’s actually more than half of the PEG compiler: 38 lines out of
+   66.
 
 * Rewrite the Lua handaxeweb to use a PEG parser.
 

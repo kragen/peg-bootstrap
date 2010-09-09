@@ -484,6 +484,14 @@ So now we have to figure out
 what the semantics are
 of each of the various actions.
 
+I’m going to factor out
+the code generation parts
+into separate named blocks
+so that it’s relatively easy 
+to have the parser, say,
+generate code in some other language,
+or just an abstract syntax tree.
+
 ### Whitespace ###
 
 Whitespace is fairly easy:
@@ -504,16 +512,23 @@ plus whatever support code is needed.
 (Here I’m going to use double angle-brackets `<<>>`
 to name chunks of code that aren’t given until later.)
 
-    rule    <- n: name _ '<-'_ body: choice '.'_
-               -> (["function parse_", n, "(input, pos) {\n",
-                      <<function prologue>>
-                      body, 
-                      <<function epilogue>>
-                   "}\n"].join('')).
+    rule    <- n: name _ '<-'_ body: choice '.'_ ->
+                   <<code to produce a function>>
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
              / _ r: rule -> (r + "\n"
                    <<support code>>
                ).
+
+The code to produce a function
+in JavaScript
+is quite straightforward:
+
+    # in code to produce a function:
+    (["function parse_", n, "(input, pos) {\n",
+        <<function prologue>>
+        body, 
+        <<function epilogue>>
+     "}\n"].join('')).
 
 So a grammar nonterminal named `term`
 will be compiled into a function called `parse_term`,
@@ -599,9 +614,16 @@ passing in the current position.
 
     # in the metacircular compiler-compiler:
     term <- labeled / nonterminal / string / negation / parenthesized.
-    nonterminal <- n: name _ -> (
-        ['  state = parse_', n, '(input, state.pos);\n'].join('')
-    ).
+    nonterminal <- n: name _ ->
+                       <<code to parse another nonterminal>>
+                   .
+
+Again, the JS implemntation
+of a subroutine call
+is quite simple:
+
+    # in code to parse another nonterminal:
+    (['  state = parse_', n, '(input, state.pos);\n'].join(''))
 
 This means we need a variable `state`
 to store this returned value in,
@@ -623,8 +645,15 @@ just like `choice`,
 return a string of zero or more valid JavaScript statements.
 
     # in the metacircular compiler-compiler:
-    labeled <- label: name _ ':'_ value: term -> (
-        [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
+    labeled <- label: name _ ':'_ value: term ->
+                   <<code to save a value in a variable>>
+               .
+
+We protect this with a conditional on `state`
+in case the parse has failed:
+
+    # in code to save a value in a variable:
+    ([value, '  if (state) var ', label, ' = state.val;\n'].join(''))
 
 (Ideally we would undo this saving
 if the nonterminal is in an alternative
@@ -695,14 +724,23 @@ and if `foo` doesn’t set `state` to `null`,
 we execute `bar`.
 
     # in the metacircular compiler-compiler:
-    sequence <- foo: term  bar: sequence -> (
-                         [foo, '  if (state) {\n', bar, '  }\n'].join(''))
+    sequence <- foo: term  bar: sequence -> 
+                       <<code to handle a sequence>>
                    / result_expression
                    / -> ('').
 
 The `result_expression` case 
 is one of the last things explained,
 so ignore it for now.
+
+This will result in deeply nested if statements
+without proper indentation
+in the output
+when there is a long sequence,
+but that’s probably okay:
+
+    # in code to handle a sequence:
+    ([foo, '  if (state) {\n', bar, '  }\n'].join(''))
 
 ### Terminal Strings ###
 
@@ -733,11 +771,17 @@ such as C,
 this might pose some difficulty.
 
     # in the metacircular compiler-compiler:
-    string <- '\'' s: stringcontents '\''_ -> (
-        ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
+    string <- '\'' s: stringcontents '\''_ ->
+                 <<code to match a literal string>>
+              .
     stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + s)
                     / b: '\\'       c: char  s: stringcontents -> (b + c + s)
                     / -> ('').
+
+So here’s the function call:
+
+    # in code to match a literal string:                   
+    (["  state = literal(input, state.pos, '", s, "');\n"].join(''))
 
 As we iterate through the characters or backslash-escapes
 inside the string, we convert them to strings —
@@ -786,16 +830,21 @@ instead of one,
 but it will do for now.
 
     # in the metacircular compiler-compiler:
-    choice <- a: sequence '/'_  b: choice -> (
-        ['  stack.push(state);\n',
-         a,
-         '  if (!state) {\n',
-         '    state = stack.pop();\n',
-         b,
-         '  } else {\n',
-         '    stack.pop();\n', // discard unnecessary saved state
-         '  }\n'].join(''))
+    choice <- a: sequence '/'_  b: choice ->
+                      <<code to handle a choice>>
                   / sequence.
+
+Execution of `b` is conditional on failure of `a`:
+
+    # in code to handle a choice:
+    (['  stack.push(state);\n',
+      a,
+      '  if (!state) {\n',
+      '    state = stack.pop();\n',
+      b,
+      '  } else {\n',
+      '    stack.pop();\n', // discard unnecessary saved state
+      '  }\n'].join(''))
 
 It’s only safe to push `state`
 rather than a copy of `state`
@@ -804,22 +853,27 @@ we only make new `state` objects.
 
 ### Negation ###
 
-Negation `!x`
-is implemented by saving the parse state,
+Negation is `!x`:
+
+    # in the metacircular compiler-compiler:
+    negation <- '!'_ t: term ->
+                    <<code to handle negation>>
+                .
+
+This is implemented by saving the parse state,
 trying to parse `x`,
 failing if parsing `x` succeeded,
 and otherwise proceeding from the saved parse state.
 
-    # in the metacircular compiler-compiler:
-    negation <- '!'_ t: term -> (
-        ['  stack.push(state);\n',
-         t,
-         '  if (state) {\n',
-         '    stack.pop();\n',
-         '    state = null;\n',
-         '  } else {\n',
-         '    state = stack.pop();\n',
-         '  }\n'].join('')).
+    # in code to handle negation:
+    (['  stack.push(state);\n',
+      t,
+      '  if (state) {\n',
+      '    stack.pop();\n',
+      '    state = null;\n',
+      '  } else {\n',
+      '    state = stack.pop();\n',
+      '  }\n'].join(''))
 
 You can use a double negative like `!!'->'`
 to write a “zero-width positive lookahead assertion” in Perl lingo.
@@ -869,9 +923,16 @@ the value of the term (if the sequence is inside parentheses)
 or the value returned by a whole parsing function.
 
     # in the metacircular compiler-compiler:
-    result_expression <- '->'_ result: expr -> (
-        ['  if (state) state.val = ', result, ';\n'].join('')
-    ).
+    result_expression <- '->'_ result: expr ->
+                             <<code to handle result expressions>>
+                         .
+
+Of course,
+this is conditional
+on the parser not being in a failed state:
+
+    # in code to handle result expressions:                         
+    (['  if (state) state.val = ', result, ';\n'].join(''))
 
 The expression is delimited by parentheses `()`.
 But the outermost pair of parentheses
@@ -879,7 +940,9 @@ are dropped,
 while inner parentheses are retained.
 This requires two outer `expr` productions
 with minimal differences between them:
+**XXX: does it really? Couldn't I just always keep the parens?**
 
+    # in the metacircular compiler-compiler:
     expr         <- '('_ e: exprcontents ')'_ -> (e).
     inner        <- '('_ e: exprcontents ')'  -> ('(' + e + ')').
     exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
@@ -892,6 +955,7 @@ while the inner one
 should avoid eating up trailing whitespace,
 since it might be significant in JavaScript
 (e.g. it might be inside a string).
+**XXX: this could be handled in `result_expression`**
 
 ### Parenthesized Expressions ###
 
@@ -913,13 +977,13 @@ extracted from this document:
     # in the output metacircular compiler-compiler:
     sp <- ' ' / '\n' / '\t'.
     _  <- sp _ / .
-    rule    <- n: name _ '<-'_ body: choice '.'_
-               -> (["function parse_", n, "(input, pos) {\n",
-                      '  var state = { pos: pos };\n',
-                      '  var stack = [];\n',
-                      body, 
-                      '  return state;\n',
-                   "}\n"].join('')).
+    rule    <- n: name _ '<-'_ body: choice '.'_ ->
+                   (["function parse_", n, "(input, pos) {\n",
+                       '  var state = { pos: pos };\n',
+                       '  var stack = [];\n',
+                       body, 
+                       '  return state;\n',
+                    "}\n"].join('')).
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
              / _ r: rule -> (r + "\n"
                    + 'function parse_char(input, pos) {\n'
@@ -936,52 +1000,56 @@ extracted from this document:
     name     <- c: namechar n: name -> (c + n) / namechar.
     namechar <- !meta !sp char.
     term <- labeled / nonterminal / string / negation / parenthesized.
-    nonterminal <- n: name _ -> (
-        ['  state = parse_', n, '(input, state.pos);\n'].join('')
-    ).
-    labeled <- label: name _ ':'_ value: term -> (
-        [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
-    sequence <- foo: term  bar: sequence -> (
-                         [foo, '  if (state) {\n', bar, '  }\n'].join(''))
+    nonterminal <- n: name _ ->
+                       (['  state = parse_', n, '(input, state.pos);\n'].join(''))
+                   .
+    labeled <- label: name _ ':'_ value: term ->
+                   ([value, '  if (state) var ', label, ' = state.val;\n'].join(''))
+               .
+    sequence <- foo: term  bar: sequence -> 
+                       ([foo, '  if (state) {\n', bar, '  }\n'].join(''))
                    / result_expression
                    / -> ('').
-    string <- '\'' s: stringcontents '\''_ -> (
-        ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
+    string <- '\'' s: stringcontents '\''_ ->
+                 (["  state = literal(input, state.pos, '", s, "');\n"].join(''))
+              .
     stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + s)
                     / b: '\\'       c: char  s: stringcontents -> (b + c + s)
                     / -> ('').
-    choice <- a: sequence '/'_  b: choice -> (
-        ['  stack.push(state);\n',
-         a,
-         '  if (!state) {\n',
-         '    state = stack.pop();\n',
-         b,
-         '  } else {\n',
-         '    stack.pop();\n', // discard unnecessary saved state
-         '  }\n'].join(''))
+    choice <- a: sequence '/'_  b: choice ->
+                      (['  stack.push(state);\n',
+                        a,
+                        '  if (!state) {\n',
+                        '    state = stack.pop();\n',
+                        b,
+                        '  } else {\n',
+                        '    stack.pop();\n', // discard unnecessary saved state
+                        '  }\n'].join(''))
                   / sequence.
-    negation <- '!'_ t: term -> (
-        ['  stack.push(state);\n',
-         t,
-         '  if (state) {\n',
-         '    stack.pop();\n',
-         '    state = null;\n',
-         '  } else {\n',
-         '    state = stack.pop();\n',
-         '  }\n'].join('')).
-    result_expression <- '->'_ result: expr -> (
-        ['  if (state) state.val = ', result, ';\n'].join('')
-    ).
+    negation <- '!'_ t: term ->
+                    (['  stack.push(state);\n',
+                      t,
+                      '  if (state) {\n',
+                      '    stack.pop();\n',
+                      '    state = null;\n',
+                      '  } else {\n',
+                      '    state = stack.pop();\n',
+                      '  }\n'].join(''))
+                .
+    result_expression <- '->'_ result: expr ->
+                             (['  if (state) state.val = ', result, ';\n'].join(''))
+                         .
     expr         <- '('_ e: exprcontents ')'_ -> (e).
     inner        <- '('_ e: exprcontents ')'  -> ('(' + e + ')').
     exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
                   / -> ('').
     parenthesized <- '('_ body: choice ')'_ -> (body).
 
-That’s 66 lines of code,
+That’s 69 lines of code,
 constituting a compiler
 that can compile itself into JavaScript,
 if you have a way to execute it.
+**XXX: it would be nice if I could cut it down by three lines or so!**
 
 Bootstrapping to JavaScript
 ---------------------------
@@ -1421,6 +1489,17 @@ this document is for reading.
 If you `git clone` it,
 it’s in `output.js`.
 
+Cross-Compiling to Lua
+----------------------
+
+It was a lot of trouble
+getting the short compiler-compiler above
+to an actually runnable state;
+I had to write two versions of the same code.
+The advantage is
+that now that I have the bootstrapped version,
+
+
 TODO
 ----
 
@@ -1639,6 +1718,7 @@ for further suggestions
 for the readability and content of this document.
 
 <link rel="stylesheet" href="style.css" />
+<script src="http://canonical.org/~kragen/sw/addtoc.js"></script>
 <style type="text/css">
 p code {background-color: #f0f0f0; border: 1px solid #e3e3e3; padding: 1px;}
 </style>
