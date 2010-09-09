@@ -12,3 +12,6 @@ metacircular.peg: peg.md handaxeweb.lua
 
 bootstrap.js: peg.md handaxeweb.lua
 	./handaxeweb.lua 'the bunch-of-functions version' < $< > $@
+
+handaxeweb.lua: handaxeweb.md
+	./build_handaxeweb
