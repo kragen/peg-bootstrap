@@ -35,7 +35,7 @@ Here’s a simple PEG
 which describes simple arithmetic expressions
 with no operator precedence:
 
-    (in an example arithmetic parser)
+    # in an example arithmetic parser:
     expression <- ('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')+ 
                   ( ('+' / '-' / '*' / '×' / '/' / '÷') expression / ).
 
@@ -86,7 +86,7 @@ Here’s an example PEG
 that handles operator precedence and parentheses,
 although not associativity:
 
-    (in an example arithmetic parser with precedence)
+    # in an example arithmetic parser with precedence:
     expression <- term ('+'/'-') expression / term.
     term       <- atom ('*' / '×' / '/' / '÷') term / atom.
     atom       <- number / '(' expression ')'.
@@ -163,7 +163,7 @@ You end up with a regexp like `\/\*([^*]|\*[^/])*\*\/`,
 assuming you have to backslash your slashes.
 In a PEG, it looks like this:
 
-    (in the C comment example PEG)
+    # in the C comment example PEG:
     comment <- '/*' (!'*/' char)* '*/'.
 
 That is, to parse a comment, first parse a `/*`,
@@ -195,7 +195,7 @@ which look like variables (or other identifiers)
 but are treated differently syntactically.
 In a PEG, you can write this:
 
-    (in the keyword example PEG)
+    # in the keyword example PEG:
     keyword = ('if' / 'while' / 'for' / otherkeyword) !idchar.
     identifier = !keyword idstartchar idchar*.
 
@@ -304,7 +304,7 @@ with these features,
 the same one I used in the “Gentle Introduction” section,
 written in terms of itself:
 
-    (in a minimal parsing expression grammar)
+    # in a minimal parsing expression grammar:
     _              <- sp _ / .
     sp             <- ' ' / '\n' / '\t'.
     grammar        <- _ rule grammar / _ rule.
@@ -361,7 +361,7 @@ as in the `foos` pattern explained above.
 
 We can add grouping by redefining `term` like this:
 
-    (in a slightly more powerful parsing expression grammar)
+    # in a slightly more powerful parsing expression grammar:
     term           <- '!'_ term / '\'' stringcontents '\''_ / name _ 
                     / '('_ choice ')'_.
 
@@ -378,7 +378,7 @@ for what I’ll do next,
 adding the capability for repetition to the language
 makes it shorter and clearer.
 
-    (in a more powerful PEG)
+    # in a more powerful PEG:
     sp      <- ' ' / '\n' / '\t'.
     _       <- sp*.
     grammar <- _ (name _ '<-'_ choice '.'_)+.
@@ -422,7 +422,7 @@ at the end of the sequence.
 Here’s an extension of the above grammar
 that allows for such names and result specifications:
 
-    (in a PEG describing results)
+    # in a PEG describing results:
     sp             <- ' ' / '\n' / '\t'.
     _              <- sp _ / .
     grammar        <- _ rule grammar / _ rule.
@@ -489,7 +489,7 @@ of each of the various actions.
 Whitespace is fairly easy:
 it is a no-op.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     sp <- ' ' / '\n' / '\t'.
     _  <- sp _ / .
 
@@ -572,7 +572,7 @@ they request a call to that nonterminal.
 In both cases,
 we basically just need the contents of the name.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name     <- c: namechar n: name -> (c + n) / namechar.
     namechar <- !meta !sp char.
@@ -597,7 +597,7 @@ A reference to a nonterminal
 is compiled as a call to its parsing function,
 passing in the current position.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     term <- labeled / nonterminal / string / negation / parenthesized.
     nonterminal <- n: name _ -> (
         ['  state = parse_', n, '(input, state.pos);\n'].join('')
@@ -608,7 +608,7 @@ to store this returned value in,
 and it needs to be initialized
 with the position passed in by the caller.
 
-    (in function prologue)
+    # in function prologue:
     '  var state = { pos: pos };\n',
 
 What do we do with `state.val`?
@@ -622,7 +622,7 @@ Let’s have `term`,
 just like `choice`,
 return a string of zero or more valid JavaScript statements.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     labeled <- label: name _ ':'_ value: term -> (
         [value, '  if (state) var ', label, ' = state.val;\n'].join('')).
 
@@ -647,7 +647,7 @@ in which case we want to return `null`.
 So at the end of the function,
 we can just return `state`:
 
-    (in function epilogue)
+    # in function epilogue:
     '  return state;\n',
 
 Now we just need to ensure
@@ -660,7 +660,7 @@ While we're on the topic of nonterminals,
 we should probably define the one predefined nonterminal,
 `char`:
 
-    (in support code)
+    # in support code:
     + 'function parse_char(input, pos) {\n'
     + '  if (pos >= input.length) return null;\n'
     + '  return { pos: pos + 1, val: input[pos] };\n'
@@ -684,7 +684,7 @@ since it treats sequences of arbitrary numbers of things
 as nested sequences of two items,
 the innermost of which is empty.
 
-    (in the bare grammar)
+    # in the bare grammar:
     sequence <- term sequence / '->'_ expr / .
 
 The case of an empty sequence
@@ -694,7 +694,7 @@ we execute `foo`,
 and if `foo` doesn’t set `state` to `null`,
 we execute `bar`.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     sequence <- foo: term  bar: sequence -> (
                          [foo, '  if (state) {\n', bar, '  }\n'].join(''))
                    / result_expression
@@ -714,7 +714,7 @@ to compare parts of the input,
 making the parsing functions less readable,
 we’ll factor this out into a single “literal” function:
 
-    (in support code)
+    # in support code:
     + 'function literal(input, pos, string) {\n'
     + '  if (input.substr(pos, string.length) == string) {\n'
     + '    return { pos: pos + string.length, val: string };\n'
@@ -732,7 +732,7 @@ If we were compiling to some other language,
 such as C,
 this might pose some difficulty.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     string <- '\'' s: stringcontents '\''_ -> (
         ["  state = literal(input, state.pos, '", s, "');\n"].join('')).
     stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + s)
@@ -773,7 +773,7 @@ even inside the same function.
 
 So on entry to the function, we create a stack:
 
-    (in function prologue)
+    # in function prologue:
     '  var stack = [];\n',
 
 The grammar entry treats N-way choices
@@ -785,7 +785,7 @@ since we’ll be using potentially four stack entries
 instead of one,
 but it will do for now.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     choice <- a: sequence '/'_  b: choice -> (
         ['  stack.push(state);\n',
          a,
@@ -810,7 +810,7 @@ trying to parse `x`,
 failing if parsing `x` succeeded,
 and otherwise proceeding from the saved parse state.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     negation <- '!'_ t: term -> (
         ['  stack.push(state);\n',
          t,
@@ -825,7 +825,7 @@ You can use a double negative like `!!'->'`
 to write a “zero-width positive lookahead assertion” in Perl lingo.
 That compiles into this:
 
-    (in the output of the compiler-compiler)
+    # in the output of the compiler-compiler:
       stack.push(state);
       stack.push(state);
       state = literal(input, state.pos, '->');
@@ -868,7 +868,7 @@ may become
 the value of the term (if the sequence is inside parentheses)
 or the value returned by a whole parsing function.
 
-    (in the metacircular compiler-compiler)
+    # in the metacircular compiler-compiler:
     result_expression <- '->'_ result: expr -> (
         ['  if (state) state.val = ', result, ';\n'].join('')
     ).
@@ -910,7 +910,7 @@ The Whole Metacircular Compiler-Compiler
 Here’s the whole thing,
 extracted from this document:
 
-    (in the output metacircular compiler-compiler)
+    # in the output metacircular compiler-compiler:
     sp <- ' ' / '\n' / '\t'.
     _  <- sp _ / .
     rule    <- n: name _ '<-'_ body: choice '.'_
@@ -999,7 +999,7 @@ Here are the hand-compiled versions of
 `sp <- ' ' / '\n' / '\t'.` 
 and `_  <- sp _ / .`
 
-    (in the hand-compiled metacircular compiler-compiler)
+    # in the hand-compiled metacircular compiler-compiler:
     function parse_sp(input, pos) {
       var state = { pos: pos };
       var stack = [];
@@ -1063,7 +1063,7 @@ For example,
 the first rule `sp <- ' ' / '\n' / '\t'.`
 will become:
 
-    (in the ASTs made of function calls)
+    # in the ASTs made of function calls:
     var sp_rule = rule('sp', choice(string(' '), choice(string('\\n'), 
                                                         string('\\t'))));
 
@@ -1081,7 +1081,7 @@ I’m omitting `sp`
 (likewise `_`, `meta`)
 because they don’t produce interesting values.
 
-    (in the bunch-of-functions version)
+    # in the bunch-of-functions version:
     function rule(n, body) {
       return (["function parse_", n, "(input, pos) {\n",
                       '  var state = { pos: pos };\n',
@@ -1168,7 +1168,7 @@ we can call them to build up the ASTs.
 
 The rule for `_` is quite straightforward:
 
-    (in the ASTs made of function calls)
+    # in the ASTs made of function calls:
     var __rule = rule('_',
                       choice(sequence(nonterminal('sp'), nonterminal('_')), 
                              ''));
@@ -1451,7 +1451,7 @@ with the one-page parser generator described above.
 [Ierusalemschy][ier] gives this grammar
 for parsing Excel-style CSV files:
 
-    (in the LPEG notation with captures)
+    # in the LPEG notation with captures:
     record     <- (<field> (',' <field>)*)->{} (%nl / !.)
     field      <- <escaped> / <nonescaped>
     nonescaped <- { [^,"%nl]* }
@@ -1469,7 +1469,7 @@ In the notation I’ve used for PEGs here,
 without repetition features,
 this looks like this:
 
-    (in csv.peg)
+    # in csv.peg:
     record             <- d: (f: field ',' r: record -> ([f].concat(r)) 
                         / f: field               -> ([f])) ('\n' / !char)
                        -> (d).
@@ -1487,7 +1487,7 @@ If we have `*` repetition that makes JavaScript Arrays,
 we can write it with only a bit more ugliness
 than in LPEG:
 
-    (in csvstar.peg)
+    # in csvstar.peg:
     record     <- h: field t: (',' field)* ('\n' / !char) -> ([h].concat(t)).
     field      <- escaped / nonescaped.
     nonescaped <- s: (!',' !'"' !'\n' char)* -> (s.join('')).
@@ -1507,7 +1507,7 @@ Its recursive-descent parser
 is a model of clarity,
 as recursive-descent parsers go:
 
-    (in the parser in ichbins.scm)
+    # in the parser in ichbins.scm:
     (define (read)
       (read-dispatch (skip-blanks (read-char))))
 
@@ -1556,7 +1556,7 @@ But with a language suited for parsing,
 we can do better.
 Here’s a PEG simply describing the same grammar as the above:
 
-    (in ichbins.peg)
+    # in ichbins.peg:
     whitespace <- '\n' / ' ' / '\t'.
     _          <- whitespace _ / .
     non-symbol <- '"' / '\\' / '(' / '\'' / ')'.
@@ -1580,7 +1580,7 @@ In 16 lines,
 we can get a real parser
 that returns a parse of the code:
 
-    (in ichbins-parser.peg)
+    # in ichbins-parser.peg:
     whitespace <- '\n' / ' ' / '\t'.
     _          <- whitespace _ / .
     nonsymbol  <- '"' / '\\' / '(' / '\'' / ')'.

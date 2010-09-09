@@ -14,6 +14,8 @@ So, here’s the plan:
 ** Copy the files over. (done)
 
 ** Check them into Git. (done)
+   
+* Switch over to using it instead of the simpler Python version. (done)
 
 * Take advantage of its multi-versioning functionality to enable the parser to generate Lua code.
 

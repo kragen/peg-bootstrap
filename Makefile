@@ -7,8 +7,8 @@ clean:
 %.md.html: %.md mkhtml.py
 	./mkhtml.py $<
 
-metacircular.peg: peg.md handaxeweb.py
-	./handaxeweb.py 'the metacircular compiler-compiler' < $< > $@
+metacircular.peg: peg.md handaxeweb.lua
+	./handaxeweb.lua 'the metacircular compiler-compiler' < $< > $@
 
-bootstrap.js: peg.md handaxeweb.py
-	./handaxeweb.py 'the bunch-of-functions version' < $< > $@
+bootstrap.js: peg.md handaxeweb.lua
+	./handaxeweb.lua 'the bunch-of-functions version' < $< > $@
