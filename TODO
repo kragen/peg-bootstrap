@@ -8,11 +8,12 @@ I have a new version of handaxeweb that I want to use, which supports
 
 So, here’s the plan:
 
-* Import the current Lua version of handaxeweb into this project, despite its crappy parsing.
+* Import the current Lua version of handaxeweb into this project,
+   despite its crappy parsing. (done)
 
-** Copy the files over.
+** Copy the files over. (done)
 
-** Check them into Git.
+** Check them into Git. (done)
 
 * Take advantage of its multi-versioning functionality to enable the parser to generate Lua code.
 
