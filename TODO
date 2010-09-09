@@ -1,0 +1,20 @@
+I have a new version of handaxeweb that I want to use, which supports
+   multiple versions. But actually I want to rewrite it with
+   peg-bootstrap itself, because a lot of its code is concerned unduly
+   with parsing in a stupid way. But it’s written in Lua, and
+   peg-bootstrap can’t currently generate parsers in Lua.
+   Furthermore, adding that ability will probably be done much better
+   with the multiple-version version of handaxeweb.
+
+So, here’s the plan:
+
+* Import the current Lua version of handaxeweb into this project, despite its crappy parsing.
+
+** Copy the files over.
+
+** Check them into Git.
+
+* Take advantage of its multi-versioning functionality to enable the parser to generate Lua code.
+
+* Rewrite the Lua handaxeweb to use a PEG parser.
+
