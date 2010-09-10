@@ -514,6 +514,7 @@ to name chunks of code that aren’t given until later.)
 
     rule    <- n: name _ '<-'_ body: choice '.'_ ->
                    <<code to produce a function>>
+               .
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
              / _ r: rule -> (r + "\n"
                    <<support code>>
@@ -528,7 +529,7 @@ is quite straightforward:
         <<function prologue>>
         body, 
         <<function epilogue>>
-     "}\n"].join('')).
+     "}\n"].join(''))
 
 So a grammar nonterminal named `term`
 will be compiled into a function called `parse_term`,
@@ -694,6 +695,8 @@ we should probably define the one predefined nonterminal,
     + '  if (pos >= input.length) return null;\n'
     + '  return { pos: pos + 1, val: input[pos] };\n'
     + '}\n'
+
+**XXX: you can't do input[pos] in MSIE!**
 
 ### Sequence ###
 
@@ -1495,10 +1498,150 @@ Cross-Compiling to Lua
 It was a lot of trouble
 getting the short compiler-compiler above
 to an actually runnable state;
-I had to write two versions of the same code.
-The advantage is
-that now that I have the bootstrapped version,
+I had to write and debug,
+basically,
+two copies of the same code.
+It would have been much easier
+if I’d already happened to have such a compiler-compiler around
+that I could use to compile my grammar with.
 
+Well,
+for the program I’m using
+to extract the code from this document,
+which I call HandAxeWeb,
+I would like to have such a compiler-compiler
+to generate code in Lua.
+
+So I’m going to define a “version 2”
+of the compiler-compiler
+which,
+instead of generating JS code,
+generates Lua code.
+(It is still written in JS, though.)
+
+First,
+instead of producing JS functions for rules,
+we produce Lua functions for rules:
+
+    # in code to produce a function v2:
+    (['function parse_',n,'(input, pos)\n',
+      <<function prologue>>
+      body,
+      <<function epilogue>>
+      'end\n'].join(''))
+
+Invoking nonterminals needs no change;
+JS and Lua syntax overlap here.
+But local variable declaration
+and finite maps
+look different:
+
+    # in function prologue v2:
+    '  local state = { pos = pos }\n',
+
+We have to declare variables
+outside their conditional;
+Lua’s scoping rules here
+change the semantics somewhat
+because unless you declare the variables
+at the top of the function
+you can’t write a rule like
+`x <- (bar y: foo / baz y: quux) -> (y)`
+and have it work
+because the inner `y` variables
+are declared in an inner block in Lua,
+while in JS
+they automatically belong to the whole function.
+
+    # in code to save a value in a variable v2:
+    ([value,
+      '  local ',label,'\n',
+      '  if state then ',label,' = state.val end\n'].join(''))
+
+The `parse_char` and `literal` functions 
+are a bit different;
+remember, Lua numbers
+character positions in strings
+from 1,
+and the second argument to its `string.sub`
+is not a length but an ending index:
+
+    # in support code v2:
+    + 'function parse_char(input, pos)\n'
+    + '  if pos > #input then return nil end\n'
+    + '  return { pos = pos + 1, \n'
+    + '           val = string.sub(input, pos, pos) }\n'
+    + 'end\n'
+    + 'function literal(input, pos, needle)\n'
+    + '  if string.sub(input, pos, pos + #needle - 1)\n'
+    + '     == needle then\n'
+    + '     return { pos = pos + #needle, val = needle }\n'
+    + '  else return nil end\n'
+    + 'end\n'
+
+The code to invoke `literal`
+doesn’t actually need to change.
+
+Sequence-handling differs only in minor bits of syntax:
+
+    # in code to handle a sequence v2:
+    ([foo, '  if state then\n', bar, '  end\n'].join(''))
+
+Initializing the stack is a little different:
+
+    # in function prologue v2:
+    '  local stack = {}\n',
+
+Ordered choice looks quite similar to JS:
+
+    # in code to handle a choice v2:
+    (['  table.insert(stack, state)\n',
+      a,
+      '  if not state then\n',
+      '    state = table.remove(stack)\n',
+      b,
+      '  else\n',
+      '    table.remove(stack)\n',
+      '  end\n'].join(''))
+
+Negation too:
+
+    # in code to handle negation v2:
+    (['  table.insert(stack, state)\n',
+      t,
+      '  if state then\n',
+      '    table.remove(stack)\n',
+      '    state = nil\n',
+      '  else\n',
+      '    state = table.remove(stack)\n',
+      '  end\n'].join(''))
+
+Result expressions too:
+
+    # in code to handle result expressions v2:
+    (['  if state then state.val = ',result,'\n'].join(''))
+
+And that is sufficient
+to be able to generate compilers in Lua
+from grammars whose result expressions are in Lua.
+Unfortunately,
+it’s still not good enough
+to generate a metacircular compiler-compiler in Lua
+from the grammar given here,
+because that grammar is written in JS,
+even though it generates Lua code.
+
+It would be relatively straightforward
+to make the modification needed to the grammar quite minor:
+all the result expressions
+merely concatenate a bunch of strings,
+and if they did so by calling a function,
+you’d only need to redefine that function
+in the two target languages;
+in JS, something like
+`Array.prototype.slice.apply(arguments).join('')`
+and in Lua, something like
+`table.concat({...})`.
 
 TODO
 ----

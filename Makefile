@@ -1,6 +1,8 @@
-all: peg.md.html metacircular.peg bootstrap.js
+all: peg.md.html metacircular.peg bootstrap.js \
+	crosscompiler.peg
 clean:
-	rm peg.md.html metacircular.peg bootstrap.js
+	rm peg.md.html metacircular.peg bootstrap.js \
+		crosscompiler.peg
 
 # FWIW note that mkhtml.py has its own Make-like mtime-comparison
 # logic internally.
@@ -15,3 +17,6 @@ bootstrap.js: peg.md handaxeweb.lua
 
 handaxeweb.lua: handaxeweb.md
 	./build_handaxeweb
+
+crosscompiler.peg: peg.md handaxeweb.lua
+	./handaxeweb.lua 'the metacircular compiler-compiler' 2 < $< > $@
