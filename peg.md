@@ -1619,7 +1619,7 @@ Negation too:
 Result expressions too:
 
     # in code to handle result expressions v2:
-    (['  if state then state.val = ',result,'\n'].join(''))
+    (['  if state then state.val = ',result,' end\n'].join(''))
 
 And that is sufficient
 to be able to generate compilers in Lua
