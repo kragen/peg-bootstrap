@@ -953,8 +953,8 @@ consumed by recursive calls to the expression production.
 ### Parenthesized Expressions ###
 
 Parenthesized expressions
-don’t need any real special handling,
-or rather the special handling
+don’t need any real special handling;
+or, rather, the special handling
 consists of the `stack` variable everything uses to backtrack;
 the parentheses are only there
 to direct the parser how to parse `/` and `!` and so on.
@@ -964,11 +964,14 @@ to direct the parser how to parse `/` and `!` and so on.
 ### Exporting ###
 
 We need one more thing
-if our grammar is to be loadable as a module
-in node.js:
+if our grammar is to be loadable as a [CommonJS module][]
+by systems like [node.js][]:
 
     # in support code:
     + "if (exports) exports.parse_grammar = parse_grammar;"
+
+[CommonJS module]: http://wiki.commonjs.org/wiki/Modules/1.1#Module_Context
+[node.js]: http://nodejs.org/
 
 This assumes that the grammar being processed
 has a production called `grammar`,
@@ -1483,7 +1486,8 @@ we need to `eval` that script:
 
     eval(all_rules);
 
-And then we can export it for use by node.js:
+And then we can export it for use by node.js
+and other CommonJS implementations:
 
     if (exports) exports.parse_grammar = parse_grammar;
 
@@ -1677,6 +1681,13 @@ TODO
   positive lookahead too.  Probably better to leave the stack in.
 - Rewrite the Lua handaxeweb to use a PEG parser.
 - maybe: rewrite the Lua handaxeweb to be written in JS with Node?
+  The whole Lua story (“in a later version, this program switched to
+  generating Lua grammars and lost the ability to compile itself”)
+  kind of stinks.  And writing 39 to 48 lines of code to "port" a
+  66-line program also seems kind of silly, like it may not justify
+  the abstraction overhead that permits it.
+- maybe: rewrite this document with bootstrap.js first?  Not sure.
+- maybe: write a Markdown parser?
 
 Other Interesting PEGs
 ----------------------
