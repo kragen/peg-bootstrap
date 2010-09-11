@@ -58,7 +58,7 @@ grammar <- _ r: rule g: grammar -> (r + "\n" + g)
                + '    return { pos: pos + string.length, val: string };\n'
                + '  } else return null;\n'
                + '}\n'
-               + "if (exports) exports.parse_grammar = parse_grammar;"
+               + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
            ).
 meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
 name     <- c: namechar n: name -> (c + n) / namechar.

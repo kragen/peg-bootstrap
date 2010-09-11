@@ -968,7 +968,7 @@ if our grammar is to be loadable as a [CommonJS module][]
 by systems like [node.js][]:
 
     # in support code:
-    + "if (exports) exports.parse_grammar = parse_grammar;"
+    + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
 
 [CommonJS module]: http://wiki.commonjs.org/wiki/Modules/1.1#Module_Context
 [node.js]: http://nodejs.org/
@@ -1005,7 +1005,7 @@ extracted from this document:
                    + '    return { pos: pos + string.length, val: string };\n'
                    + '  } else return null;\n'
                    + '}\n'
-                   + "if (exports) exports.parse_grammar = parse_grammar;"
+                   + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
                ).
     meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name     <- c: namechar n: name -> (c + n) / namechar.
@@ -1311,8 +1311,10 @@ in order to retain some modicum of readability.
             "+ '  if (input.substr(pos, string.length) == string) {\\n'\n" +
             "+ '    return { pos: pos + string.length, val: string };\\n'\n" +
             "+ '  } else return null;\\n'\n" +
-            "+ '}\\n'" +
-            "+ 'if (exports) exports.parse_grammar = parse_grammar;'"))));
+            "+ '}\\n'\n" +
+            "+ 'if (typeof exports !== "+'"undefined"'+") {\\n'\n" +
+            "+ '    exports.parse_grammar = parse_grammar;\\n'\n" +
+            "+ '}\\n'\n"))));
 
 The quoting of the support code
 is kind of confusing;
@@ -1486,10 +1488,9 @@ we need to `eval` that script:
 
     eval(all_rules);
 
-And then we can export it for use by node.js
-and other CommonJS implementations:
+And then we can export the function:
 
-    if (exports) exports.parse_grammar = parse_grammar;
+    if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;
 
 ### The Output Parser in JavaScript ###
 
