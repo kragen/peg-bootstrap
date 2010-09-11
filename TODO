@@ -19,7 +19,7 @@ So, here’s the plan:
 
 * Take advantage of its multi-versioning functionality to enable the parser to generate Lua code. (done)
    
-* Hook it up to node.js so it can rebuild everything automatically.
+* Hook it up to node.js so it can rebuild everything automatically. (done)
 
 * Rewrite the Lua handaxeweb to use a PEG parser.
 

@@ -971,6 +971,19 @@ to direct the parser how to parse `/` and `!` and so on.
 
     parenthesized <- '('_ body: choice ')'_ -> (body).
 
+### Exporting ###
+
+We need one more thing
+if our grammar is to be loadable as a module
+in node.js:
+
+    # in support code:
+    + "if (exports) exports.parse_grammar = parse_grammar;"
+
+This assumes that the grammar being processed
+has a production called `grammar`,
+which **XXX** probably should be fixed.
+
 The Whole Metacircular Compiler-Compiler
 ----------------------------------------
 
@@ -986,7 +999,8 @@ extracted from this document:
                        '  var stack = [];\n',
                        body, 
                        '  return state;\n',
-                    "}\n"].join('')).
+                    "}\n"].join(''))
+               .
     grammar <- _ r: rule g: grammar -> (r + "\n" + g)
              / _ r: rule -> (r + "\n"
                    + 'function parse_char(input, pos) {\n'
@@ -998,6 +1012,7 @@ extracted from this document:
                    + '    return { pos: pos + string.length, val: string };\n'
                    + '  } else return null;\n'
                    + '}\n'
+                   + "if (exports) exports.parse_grammar = parse_grammar;"
                ).
     meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name     <- c: namechar n: name -> (c + n) / namechar.
@@ -1048,7 +1063,8 @@ extracted from this document:
                   / -> ('').
     parenthesized <- '('_ body: choice ')'_ -> (body).
 
-That’s 69 lines of code,
+
+That’s 71 lines of code,
 constituting a compiler
 that can compile itself into JavaScript,
 if you have a way to execute it.
@@ -1219,7 +1235,8 @@ because it just returns one of its children's values.
     }
 
 We’ll also need the support code
-from the `grammar` rule.
+from the `grammar` rule,
+except for the exporting of `parse_grammar`.
 
     function parse_char(input, pos) {
       if (pos >= input.length) return null;
@@ -1308,7 +1325,8 @@ in order to retain some modicum of readability.
             "+ '  if (input.substr(pos, string.length) == string) {\\n'\n" +
             "+ '    return { pos: pos + string.length, val: string };\\n'\n" +
             "+ '  } else return null;\\n'\n" +
-            "+ '}\\n'"))));
+            "+ '}\\n'" +
+            "+ 'if (exports) exports.parse_grammar = parse_grammar;'"))));
 
 The quoting of the support code
 is kind of confusing;
@@ -1477,9 +1495,14 @@ Now the variable `all_rules`
 has a working parser in it
 in JavaScript.
 
-I’ll export it for use with node.js:
+To get a usable `parse_grammar` function,
+we need to `eval` that script:
 
-    if (exports) exports.all_rules = all_rules;
+    eval(all_rules);
+
+And then we can export it for use by node.js:
+
+    if (exports) exports.parse_grammar = parse_grammar;
 
 ### The Output Parser in JavaScript ###
 

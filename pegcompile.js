@@ -4,15 +4,18 @@
 var sys = require('sys');
 var Script = process.binding('evals').Script;
 
-var bootstrap = require('./bootstrap.js');
-var compiler = {};
-Script.runInNewContext(bootstrap.all_rules, compiler, 'bootstrap rules');
-var parse_grammar = compiler.parse_grammar;
+var compiler_script_file = process.argv[2];
+if (!compiler_script_file) {
+    sys.debug("Usage: "+process.argv[1]+" bootstrap.js < foo.peg > foo.js"); // XXX sys.debug is the wrong thing
+    process.exit(1);
+}
+
+var compiler = require('./' + compiler_script_file);
 
 var stdin = process.openStdin();
 var buf = [];
 stdin.on('data', function(data) { buf.push(data) });
 stdin.on('end', function() {
-    sys.print(parse_grammar(buf.join(''), 0).val);
+    sys.print(compiler.parse_grammar(buf.join(''), 0).val);
     stdin.destroy();
 });

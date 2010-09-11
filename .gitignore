@@ -7,3 +7,6 @@ handaxeweb3.lua
 handaxeweb4.lua
 build_handaxeweb.new
 crosscompiler.peg
+crosscompiler.js
+stage2.js
+stage3.js

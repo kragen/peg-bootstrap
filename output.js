@@ -111,6 +111,7 @@ function parse_grammar(input, pos) {
                + '    return { pos: pos + string.length, val: string };\n'
                + '  } else return null;\n'
                + '}\n'
+               + "if (exports) exports.parse_grammar = parse_grammar;"
            ;
   }
   }
@@ -655,3 +656,4 @@ function literal(input, pos, string) {
     return { pos: pos + string.length, val: string };
   } else return null;
 }
+if (exports) exports.parse_grammar = parse_grammar;
