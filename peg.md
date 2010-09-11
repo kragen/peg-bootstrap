@@ -1692,12 +1692,16 @@ TODO
   would only need to contain one level of backtracking for `/` and one
   for `!` — oh, well, hmm, `!` might be tricky if we want to support
   positive lookahead too.  Probably better to leave the stack in.
+- Rewrite the Lua handaxeweb to use a PEG parser.
+- maybe: rewrite the Lua handaxeweb to be written in JS with Node?
 
 Other Interesting PEGs
 ----------------------
 
 Here’s some nifty stuff you can do
 with the one-page parser generator described above.
+**XXX these don't define a `grammar` production,
+so they won’t work**
 
 ### CSV files ###
 
