@@ -693,10 +693,8 @@ we should probably define the one predefined nonterminal,
     # in support code:
     + 'function parse_char(input, pos) {\n'
     + '  if (pos >= input.length) return null;\n'
-    + '  return { pos: pos + 1, val: input[pos] };\n'
+    + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
     + '}\n'
-
-**XXX: you can't do input[pos] in MSIE!**
 
 ### Sequence ###
 
@@ -1005,7 +1003,7 @@ extracted from this document:
              / _ r: rule -> (r + "\n"
                    + 'function parse_char(input, pos) {\n'
                    + '  if (pos >= input.length) return null;\n'
-                   + '  return { pos: pos + 1, val: input[pos] };\n'
+                   + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
                    + '}\n'
                    + 'function literal(input, pos, string) {\n'
                    + '  if (input.substr(pos, string.length) == string) {\n'
@@ -1240,7 +1238,7 @@ except for the exporting of `parse_grammar`.
 
     function parse_char(input, pos) {
       if (pos >= input.length) return null;
-      return { pos: pos + 1, val: input[pos] };
+      return { pos: pos + 1, val: input.charAt(pos) };
     }
     function literal(input, pos, string) {
       if (input.substr(pos, string.length) == string) {
@@ -1319,7 +1317,7 @@ in order to retain some modicum of readability.
                  result_expression('r + "\\n"\n' +
             "+ 'function parse_char(input, pos) {\\n'\n" +
             "+ '  if (pos >= input.length) return null;\\n'\n" +
-            "+ '  return { pos: pos + 1, val: input[pos] };\\n'\n" +
+            "+ '  return { pos: pos + 1, val: input.charAt(pos) };\\n'\n" +
             "+ '}\\n'\n" +
             "+ 'function literal(input, pos, string) {\\n'\n" +
             "+ '  if (input.substr(pos, string.length) == string) {\\n'\n" +

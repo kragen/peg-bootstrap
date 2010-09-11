@@ -104,7 +104,7 @@ function parse_grammar(input, pos) {
   if (state) state.val = r + "\n"
                + 'function parse_char(input, pos) {\n'
                + '  if (pos >= input.length) return null;\n'
-               + '  return { pos: pos + 1, val: input[pos] };\n'
+               + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
                + '}\n'
                + 'function literal(input, pos, string) {\n'
                + '  if (input.substr(pos, string.length) == string) {\n'
@@ -649,7 +649,7 @@ function parse_parenthesized(input, pos) {
 
 function parse_char(input, pos) {
   if (pos >= input.length) return null;
-  return { pos: pos + 1, val: input[pos] };
+  return { pos: pos + 1, val: input.charAt(pos) };
 }
 function literal(input, pos, string) {
   if (input.substr(pos, string.length) == string) {
