@@ -1477,6 +1477,10 @@ Now the variable `all_rules`
 has a working parser in it
 in JavaScript.
 
+I’ll export it for use with node.js:
+
+    if (exports) exports.all_rules = all_rules;
+
 ### The Output Parser in JavaScript ###
 
 I used to include here
@@ -1642,6 +1646,10 @@ in JS, something like
 `Array.prototype.slice.apply(arguments).join('')`
 and in Lua, something like
 `table.concat({...})`.
+
+But this is sort of unnecessary.
+Really, we just need to be able to compile our parsers
+using node.js.
 
 TODO
 ----
