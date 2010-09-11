@@ -1,4 +1,4 @@
-#!/home/kragen/devel/node/build/default/node
+#!/usr/local/bin/node
 // This is a script to invoke our bootstrap compiler with node.js
 // hooking its input up to stdin and its output up to stdout.
 var sys = require('sys');
