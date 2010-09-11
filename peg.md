@@ -835,7 +835,10 @@ but it will do for now.
                       <<code to handle a choice>>
                   / sequence.
 
-Execution of `b` is conditional on failure of `a`:
+Execution of `b` is conditional on failure of `a`;
+if `a` succeeds,
+we simply discard the state
+we saved before trying it.
 
     # in code to handle a choice:
     (['  stack.push(state);\n',
@@ -843,9 +846,7 @@ Execution of `b` is conditional on failure of `a`:
       '  if (!state) {\n',
       '    state = stack.pop();\n',
       b,
-      '  } else {\n',
-      '    stack.pop();\n', // discard unnecessary saved state
-      '  }\n'].join(''))
+      '  } else stack.pop();\n'].join(''))
 
 It’s only safe to push `state`
 rather than a copy of `state`
@@ -872,9 +873,7 @@ and otherwise proceeding from the saved parse state.
       '  if (state) {\n',
       '    stack.pop();\n',
       '    state = null;\n',
-      '  } else {\n',
-      '    state = stack.pop();\n',
-      '  }\n'].join(''))
+      '  } else state = stack.pop();\n'].join(''))
 
 You can use a double negative like `!!'->'`
 to write a “zero-width positive lookahead assertion” in Perl lingo.
@@ -887,15 +886,11 @@ That compiles into this:
       if (state) {
         stack.pop();
         state = null;
-      } else {
-        state = stack.pop();
-      }
+      } else state = stack.pop();
       if (state) {
         stack.pop();
         state = null;
-      } else {
-        state = stack.pop();
-      }
+      } else state = stack.pop();
 
 The initial `state` is assumed to be non-`null`.
 So after the call to `literal`,
@@ -924,9 +919,11 @@ the value of the term (if the sequence is inside parentheses)
 or the value returned by a whole parsing function.
 
     # in the metacircular compiler-compiler:
-    result_expression <- '->'_ result: expr ->
+    result_expression <- '->'_ result: expr _ ->
                              <<code to handle result expressions>>
                          .
+
+Note the `_` to discard whitespace.
 
 Of course,
 this is conditional
@@ -936,27 +933,22 @@ on the parser not being in a failed state:
     (['  if (state) state.val = ', result, ';\n'].join(''))
 
 The expression is delimited by parentheses `()`.
-But the outermost pair of parentheses
-are dropped,
-while inner parentheses are retained.
-This requires two outer `expr` productions
-with minimal differences between them:
-**XXX: does it really? Couldn't I just always keep the parens?**
+The outermost pair of parentheses
+are kept,
+which simplifies the grammar
+and avoids tricky problems of operator precedence
+when the result expression is copied into the output program
+in the `state.val =` context above.
 
     # in the metacircular compiler-compiler:
-    expr         <- '('_ e: exprcontents ')'_ -> (e).
-    inner        <- '('_ e: exprcontents ')'  -> ('(' + e + ')').
-    exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
+    expr         <- '('_ e: exprcontents ')' -> ('(' + e + ')').
+    exprcontents <- c: (!'(' !')' char / expr)  e: exprcontents -> (c + e)
                   / -> ('').
 
-The outer one 
-needs to eat up trailing whitespace,
-since it might be followed by `/` with space around it or something,
-while the inner one 
-should avoid eating up trailing whitespace,
-since it might be significant in JavaScript
-(e.g. it might be inside a string).
-**XXX: this could be handled in `result_expression`**
+`result_expression` discards whitespace after the expression
+rather than having the expression production do it itself
+in order to preserve whitespace after right parens
+consumed by recursive calls to the expression production.
 
 ### Parenthesized Expressions ###
 
@@ -1038,9 +1030,7 @@ extracted from this document:
                         '  if (!state) {\n',
                         '    state = stack.pop();\n',
                         b,
-                        '  } else {\n',
-                        '    stack.pop();\n', // discard unnecessary saved state
-                        '  }\n'].join(''))
+                        '  } else stack.pop();\n'].join(''))
                   / sequence.
     negation <- '!'_ t: term ->
                     (['  stack.push(state);\n',
@@ -1048,25 +1038,20 @@ extracted from this document:
                       '  if (state) {\n',
                       '    stack.pop();\n',
                       '    state = null;\n',
-                      '  } else {\n',
-                      '    state = stack.pop();\n',
-                      '  }\n'].join(''))
+                      '  } else state = stack.pop();\n'].join(''))
                 .
-    result_expression <- '->'_ result: expr ->
+    result_expression <- '->'_ result: expr _ ->
                              (['  if (state) state.val = ', result, ';\n'].join(''))
                          .
-    expr         <- '('_ e: exprcontents ')'_ -> (e).
-    inner        <- '('_ e: exprcontents ')'  -> ('(' + e + ')').
-    exprcontents <- c: (!'(' !')' char / inner)  e: exprcontents -> (c + e)
+    expr         <- '('_ e: exprcontents ')' -> ('(' + e + ')').
+    exprcontents <- c: (!'(' !')' char / expr)  e: exprcontents -> (c + e)
                   / -> ('').
     parenthesized <- '('_ body: choice ')'_ -> (body).
 
-
-That’s 71 lines of code,
+That’s 66 lines of code,
 constituting a compiler
 that can compile itself into JavaScript,
 if you have a way to execute it.
-**XXX: it would be nice if I could cut it down by three lines or so!**
 
 Bootstrapping to JavaScript
 ---------------------------
