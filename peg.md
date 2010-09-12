@@ -1743,8 +1743,6 @@ Other Interesting PEGs
 
 Here’s some nifty stuff you can do
 with the one-page parser generator described above.
-**XXX these don't define a `sentence` production,
-so they won’t work**
 
 ### CSV files ###
 
@@ -1770,7 +1768,7 @@ without repetition features,
 this looks like this:
 
     # in csv.peg:
-    record             <- d: (f: field ',' r: record -> ([f].concat(r)) 
+    sentence           <- d: (f: field ',' r: sentence -> ([f].concat(r)) 
                         / f: field               -> ([f])) ('\n' / !char)
                        -> (d).
     field              <- escaped / nonescaped.
@@ -1788,7 +1786,7 @@ we can write it with only a bit more ugliness
 than in LPEG:
 
     # in csvstar.peg:
-    record     <- h: field t: (',' field)* ('\n' / !char) -> ([h].concat(t)).
+    sentence   <- h: field t: (',' field)* ('\n' / !char) -> ([h].concat(t)).
     field      <- escaped / nonescaped.
     nonescaped <- s: (!',' !'"' !'\n' char)* -> (s.join('')).
     escaped    <- '"' s: (!'"' char / '""' -> ('"'))* '"' -> (s.join('')).
@@ -1860,7 +1858,7 @@ Here’s a PEG simply describing the same grammar as the above:
     whitespace <- '\n' / ' ' / '\t'.
     _          <- whitespace _ / .
     non-symbol <- '"' / '\\' / '(' / '\'' / ')'.
-    read       <- _ sexp.
+    sentence   <- _ sexp.
     sexp       <- '\\' char / '"' string / '(' list / '\'' read / symbol.
     string     <- '"' / (!'\\' char / '\\' char) string.
     symbol     <- !whitespace !non-symbol char / .
@@ -1876,28 +1874,30 @@ and eliminates nearly all non-tail calls
 (except inside of `list`, and to `_`, and in distinguishing character categories)
 but I think it makes it a little less clear.
 
-In 16 lines,
+In 17 lines,
 we can get a real parser
-that returns a parse of the code:
+that returns a parse of the code,
+in this case as a JSON string:
 
     # in ichbins-parser.peg:
     whitespace <- '\n' / ' ' / '\t'.
     _          <- whitespace _ / .
     nonsymbol  <- '"' / '\\' / '(' / '\'' / ')'.
-    read       <- _ sexp.
-    sexp       <- '\\' c: char                               -> ({char: c})
+    sentence   <- s: top          -> (JSON.stringify(s, null, 4)).
+    top        <- _ sexp.
+    sexp       <- '\\' c: char    -> ({char: c})
                 / '"' string 
                 / '(' list 
-                / '\'' s: read                               -> (['quote', s])
-                / s: symbol                                  -> ({symbol: s}).
+                / '\'' s: top     -> ([{symbol: 'quote'}, s])
+                / s: symbol       -> ({symbol: s}).
 
-    string     <- '"'                                        -> ('') 
-                / a: (!'\\' char / 
-                       '\\' b: char -> ('\\' + b)) t: string -> (a + t).
-    symbol     <- !whitespace !nonsymbol a: char b: symbol   -> (a + b) 
-                /                                            -> ('').
-    list       <- ')'                                        -> ([])
-                / a: read b: list                            -> ([a].concat(b)).
+    string     <- '"'             -> ('') 
+                / a: (!'\\' char
+                     / '\\' b: char -> ('\\' + b)) t: string  -> (a + t).
+    symbol     <- !whitespace !nonsymbol a: char b: symbol    -> (a + b) 
+                /                 -> ('').
+    list       <- ')'             -> ([])
+                / a: top b: list  -> ([a].concat(b)).
 
 
 [ichbins]: http://www.accesscom.com/~darius/???XXX "ichbins: I can hardly believe it’s not Scheme"

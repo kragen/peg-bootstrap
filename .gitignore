@@ -10,3 +10,6 @@ crosscompiler.peg
 crosscompiler.js
 stage2.js
 stage3.js
+ichbins-parser.peg
+ichbins-parser.js
+ichbins-sexp.json

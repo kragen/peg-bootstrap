@@ -1,0 +1,7 @@
+(foo
+	"a string"
+        some more symbols
+        'and 'quoted 'symbols
+        \s\o\m\e\ \c\h\a\r\s
+        (a nested list!)
+        (and (deeper '(with quoting))))

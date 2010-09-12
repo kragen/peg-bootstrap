@@ -1,8 +1,9 @@
 all: peg.md.html metacircular.peg bootstrap.js \
-	crosscompiler.peg output.js crosscompiler.js stage3.js
+	crosscompiler.peg output.js crosscompiler.js stage3.js ichbins-sexp.json
 clean:
 	rm peg.md.html metacircular.peg bootstrap.js \
-		crosscompiler.peg crosscompiler.js stage2.js stage3.js
+		crosscompiler.peg crosscompiler.js stage2.js stage3.js \
+		ichbins-parser.peg ichbins-parser.js ichbins-sexp.json
 
 # FWIW note that mkhtml.py has its own Make-like mtime-comparison
 # logic internally.
@@ -46,3 +47,11 @@ crosscompiler.peg: peg.md handaxeweb.lua
 crosscompiler.js: crosscompiler.peg pegcompile.js bootstrap.js
 	node ./pegcompile.js bootstrap.js < $< > $@
 
+ichbins-parser.peg: peg.md
+	./handaxeweb.lua $@ < $< > $@
+
+ichbins-parser.js: ichbins-parser.peg pegcompile.js stage3.js
+	node ./pegcompile.js stage3.js < ichbins-parser.peg > $@
+
+ichbins-sexp.json: ichbins-parser.js pegcompile.js ichbins-sexp
+	node ./pegcompile.js ichbins-parser.js < ichbins-sexp > $@
