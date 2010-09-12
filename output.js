@@ -107,7 +107,7 @@ function parse_sentence(input, pos) {
                 + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
                 + '}\n'
                 + 'function literal(input, pos, string) {\n'
-                + '  if (input.substr(pos, string.length) == string) {\n'
+                + '  if (input.substr(pos, string.length) === string) {\n'
                 + '    return { pos: pos + string.length, val: string };\n'
                 + '  } else return null;\n'
                 + '}\n'
@@ -628,7 +628,7 @@ function parse_char(input, pos) {
   return { pos: pos + 1, val: input.charAt(pos) };
 }
 function literal(input, pos, string) {
-  if (input.substr(pos, string.length) == string) {
+  if (input.substr(pos, string.length) === string) {
     return { pos: pos + string.length, val: string };
   } else return null;
 }

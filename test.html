@@ -54,7 +54,7 @@ sentence <- _ r: rule g: sentence -> (r + "\n" + g)
                 + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
                 + '}\n'
                 + 'function literal(input, pos, string) {\n'
-                + '  if (input.substr(pos, string.length) == string) {\n'
+                + '  if (input.substr(pos, string.length) === string) {\n'
                 + '    return { pos: pos + string.length, val: string };\n'
                 + '  } else return null;\n'
                 + '}\n'

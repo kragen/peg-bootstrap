@@ -761,12 +761,10 @@ we’ll factor this out into a single “literal” function:
 
     # in support code:
     + 'function literal(input, pos, string) {\n'
-    + '  if (input.substr(pos, string.length) == string) {\n'
+    + '  if (input.substr(pos, string.length) === string) {\n'
     + '    return { pos: pos + string.length, val: string };\n'
     + '  } else return null;\n'
     + '}\n'
-
-**XXX: use ===**
 
 So then we just need to emit code to call this function
 and update `state` appropriately
@@ -1009,7 +1007,7 @@ extracted from this document:
                     + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
                     + '}\n'
                     + 'function literal(input, pos, string) {\n'
-                    + '  if (input.substr(pos, string.length) == string) {\n'
+                    + '  if (input.substr(pos, string.length) === string) {\n'
                     + '    return { pos: pos + string.length, val: string };\n'
                     + '  } else return null;\n'
                     + '}\n'
@@ -1239,7 +1237,7 @@ except for the exporting of `parse_sentence`.
       return { pos: pos + 1, val: input.charAt(pos) };
     }
     function literal(input, pos, string) {
-      if (input.substr(pos, string.length) == string) {
+      if (input.substr(pos, string.length) === string) {
         return { pos: pos + string.length, val: string };
       } else return null;
     }
@@ -1318,7 +1316,7 @@ in order to retain some modicum of readability.
             "+ '  return { pos: pos + 1, val: input.charAt(pos) };\\n'\n" +
             "+ '}\\n'\n" +
             "+ 'function literal(input, pos, string) {\\n'\n" +
-            "+ '  if (input.substr(pos, string.length) == string) {\\n'\n" +
+            "+ '  if (input.substr(pos, string.length) === string) {\\n'\n" +
             "+ '    return { pos: pos + string.length, val: string };\\n'\n" +
             "+ '  } else return null;\\n'\n" +
             "+ '}\\n'\n" +
@@ -1599,7 +1597,7 @@ is not a length but an ending index:
     + 'end\n'
     + 'function literal(input, pos, needle)\n'
     + '  if string.sub(input, pos, pos + #needle - 1)\n'
-    + '     == needle then\n'
+    + '     === needle then\n'
     + '     return { pos = pos + #needle, val = needle }\n'
     + '  else return nil end\n'
     + 'end\n'
@@ -1701,7 +1699,7 @@ TODO
   kind of stinks.  And writing 39 to 48 lines of code to "port" a
   66-line program also seems kind of silly, like it may not justify
   the abstraction overhead that permits it.
-- maybe: rewrite this document with bootstrap.js first?  Not sure.
+- maybe: reorganize this document, putting bootstrap.js first?  Not sure.
 - maybe: write a Markdown parser?
 
 Profiling results
