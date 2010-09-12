@@ -78,7 +78,7 @@ function parse_rule(input, pos) {
   return state;
 }
 
-function parse_grammar(input, pos) {
+function parse_sentence(input, pos) {
   var state = { pos: pos };
   var stack = [];
   stack.push(state);
@@ -87,7 +87,7 @@ function parse_grammar(input, pos) {
   state = parse_rule(input, state.pos);
   if (state) var r = state.val;
   if (state) {
-  state = parse_grammar(input, state.pos);
+  state = parse_sentence(input, state.pos);
   if (state) var g = state.val;
   if (state) {
   if (state) state.val = r + "\n" + g;
@@ -102,17 +102,17 @@ function parse_grammar(input, pos) {
   if (state) var r = state.val;
   if (state) {
   if (state) state.val = r + "\n"
-               + 'function parse_char(input, pos) {\n'
-               + '  if (pos >= input.length) return null;\n'
-               + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
-               + '}\n'
-               + 'function literal(input, pos, string) {\n'
-               + '  if (input.substr(pos, string.length) == string) {\n'
-               + '    return { pos: pos + string.length, val: string };\n'
-               + '  } else return null;\n'
-               + '}\n'
-               + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
-           ;
+                + 'function parse_char(input, pos) {\n'
+                + '  if (pos >= input.length) return null;\n'
+                + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
+                + '}\n'
+                + 'function literal(input, pos, string) {\n'
+                + '  if (input.substr(pos, string.length) == string) {\n'
+                + '    return { pos: pos + string.length, val: string };\n'
+                + '  } else return null;\n'
+                + '}\n'
+                + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+            ;
   }
   }
   } else {
@@ -633,5 +633,5 @@ function literal(input, pos, string) {
   } else return null;
 }
 if (typeof exports !== "undefined") {
-    exports.parse_grammar = parse_grammar;
+    exports.parse_sentence = parse_sentence;
 }

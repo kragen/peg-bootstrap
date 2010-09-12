@@ -16,6 +16,6 @@ var stdin = process.openStdin();
 var buf = [];
 stdin.on('data', function(data) { buf.push(data) });
 stdin.on('end', function() {
-    sys.print(compiler.parse_grammar(buf.join(''), 0).val);
+    sys.print(compiler.parse_sentence(buf.join(''), 0).val);
     stdin.destroy();
 });

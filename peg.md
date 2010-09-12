@@ -36,12 +36,12 @@ which describes simple arithmetic expressions
 with no operator precedence:
 
     # in an example arithmetic parser:
-    expression <- ('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')+ 
-                  ( ('+' / '-' / '*' / '×' / '/' / '÷') expression / ).
+    sentence <- ('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')+ 
+                ( ('+' / '-' / '*' / '×' / '/' / '÷') sentence / ).
 
-This says that an `expression` is
+This says that a `sentence` is
 one or more digits,
-followed by either an operator and another `expression`,
+followed by either an operator and another `sentence`,
 or nothing.
 The parentheses are used for grouping;
 apostrophes `''` are used for literal text;
@@ -52,7 +52,13 @@ a left arrow `<-` is used to attach a name
 to a parsing rule;
 and `x+` means “one or more of `x`”.
 
-So, to parse `2*30+4` as an `expression`,
+(Typically,
+each of the strings that belongs to a language,
+such as a program in a programming language,
+is called a “sentence” of that language;
+thus my choice of that nonterminal name.)
+
+So, to parse `2*30+4` as a `sentence`,
 first we try matching a `0` at the beginning,
 where there’s a `2`;
 that doesn’t work, so we try a `1`;
@@ -63,18 +69,18 @@ at the `*`.
 That doesn’t work out (after ten tries), so we zoom along and look for a `+`.
 The `*` isn’t a `+`, so after a couple of tries,
 we find out it’s a `*`.
-Then we try parsing a nested `expression` starting at the `3`.
+Then we try parsing a nested `sentence` starting at the `3`.
 This time, we match the `3` after three tries,
 and then when we look for a second digit, we find a `0`;
 the third try fails, so we look for a `+`, and find it;
-then we look for a second nested `expression`.
+then we look for a second nested `sentence`.
 We match a `4` after four tries,
 but we don’t find another digit after it
 (because there isn’t anything after it),
 so we try to find an operator after it,
 which doesn’t work,
 so we try to find nothing after it 
-(the emptiness after the `/` after `expression`)
+(the emptiness after the `/` after `sentence`)
 which works,
 and we’re done.
 
@@ -87,9 +93,9 @@ that handles operator precedence and parentheses,
 although not associativity:
 
     # in an example arithmetic parser with precedence:
-    expression <- term ('+'/'-') expression / term.
+    sentence   <- term ('+'/'-') sentence / term.
     term       <- atom ('*' / '×' / '/' / '÷') term / atom.
-    atom       <- number / '(' expression ')'.
+    atom       <- number / '(' sentence ')'.
     number     <- ('0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9')+.
 
 If we try to parse the same `2*30+4` with this grammar,
@@ -106,15 +112,15 @@ rather than an `atom` followed by an operator and another term.
 Then `atom` sucks up the `30` just like before,
 and the inner `term` finishes,
 and then the outer `term` finishes,
-and it’s up to `expression` to deal with the `+4` bit,
+and it’s up to `sentence` to deal with the `+4` bit,
 which it does in the predictable way.
 
 It won’t handle `40-1-1` as `(40-1)-1` as you might hope, though.
-If you try to rewrite `expression` to handle this
-as `expression ('+'/'-') term / term`,
+If you try to rewrite `sentence` to handle this
+as `sentence ('+'/'-') term / term`,
 you run into trouble —
-the first thing `expression` does
-is try to parse an `expression`,
+the first thing `sentence` does
+is try to parse a `sentence`,
 so you get into an infinite loop.
 There are different ways to ameliorate this problem
 by enhancing the parser generator,
@@ -148,7 +154,7 @@ A few things to notice:
     It turns out there are ways to solve this,
     although I don’t explore them in this document.
 3.  They have trouble with “left recursion”,
-    which is where the first thing in a “foo” (say, `expression`)
+    which is where the first thing in a “foo” (say, `sentence`)
     can be a smaller “foo”.
 
 There’s one more big feature of PEGs:
@@ -307,7 +313,7 @@ written in terms of itself:
     # in a minimal parsing expression grammar:
     _              <- sp _ / .
     sp             <- ' ' / '\n' / '\t'.
-    grammar        <- _ rule grammar / _ rule.
+    sentence       <- _ rule sentence / _ rule.
     rule           <- name _ '<-'_ choice '.'_.
     choice         <- sequence '/'_ choice / sequence.
     sequence       <- term sequence / .
@@ -343,7 +349,7 @@ although a parsing failure inside the last `item` will indeed do so.
 This allows us to get by
 without a separate scanner for this grammar!
 One minor variation of this pattern
-is found in `grammar` and `name`,
+is found in `sentence` and `name`,
 which match *one* or more of their elements,
 not *zero* or more.
 
@@ -379,14 +385,14 @@ adding the capability for repetition to the language
 makes it shorter and clearer.
 
     # in a more powerful PEG:
-    sp      <- ' ' / '\n' / '\t'.
-    _       <- sp*.
-    grammar <- _ (name _ '<-'_ choice '.'_)+.
-    choice  <- term* ('/'_ term*)*.
-    term    <- ('!'_ term / string / name / '('_ choice ')')_ ('+' / '*' / )_.
-    string  <- '\'' (!'\\' !'\'' char / '\\' char)* '\''_.
-    meta    <- '!' / '\'' / '<-' / '/' / '.' / '+' / '*' / '(' / ')'.
-    name    <- (!meta !sp char)+.
+    sp       <- ' ' / '\n' / '\t'.
+    _        <- sp*.
+    sentence <- _ (name _ '<-'_ choice '.'_)+.
+    choice   <- term* ('/'_ term*)*.
+    term     <- ('!'_ term / string / name / '('_ choice ')')_ ('+' / '*' / )_.
+    string   <- '\'' (!'\\' !'\'' char / '\\' char)* '\''_.
+    meta     <- '!' / '\'' / '<-' / '/' / '.' / '+' / '*' / '(' / ')'.
+    name     <- (!meta !sp char)+.
 
 That shrinks the grammar considerably,
 while significantly expanding 
@@ -425,7 +431,7 @@ that allows for such names and result specifications:
     # in a PEG describing results:
     sp             <- ' ' / '\n' / '\t'.
     _              <- sp _ / .
-    grammar        <- _ rule grammar / _ rule.
+    sentence        <- _ rule sentence / _ rule.
     rule           <- name _ '<-'_ choice '.'_.
     choice         <- sequence '/'_ choice / sequence.
     sequence       <- term sequence / '->'_ expr / .
@@ -515,10 +521,10 @@ to name chunks of code that aren’t given until later.)
     rule    <- n: name _ '<-'_ body: choice '.'_ ->
                    <<code to produce a function>>
                .
-    grammar <- _ r: rule g: grammar -> (r + "\n" + g)
-             / _ r: rule -> (r + "\n"
-                   <<support code>>
-               ).
+    sentence <- _ r: rule g: sentence -> (r + "\n" + g)
+              / _ r: rule -> (r + "\n"
+                    <<support code>>
+                ).
 
 The code to produce a function
 in JavaScript
@@ -572,7 +578,7 @@ To package the value computed
 along with the new input position,
 we’ll return a JavaScript object
 with `val` and `pos` properties,
-like `{val: "grammar", pos: 37}`.
+like `{val: "foo", pos: 37}`.
 In case of failure,
 we’ll just return `null`.
 
@@ -759,6 +765,8 @@ we’ll factor this out into a single “literal” function:
     + '    return { pos: pos + string.length, val: string };\n'
     + '  } else return null;\n'
     + '}\n'
+
+**XXX: use ===**
 
 So then we just need to emit code to call this function
 and update `state` appropriately
@@ -968,14 +976,14 @@ if our grammar is to be loadable as a [CommonJS module][]
 by systems like [node.js][]:
 
     # in support code:
-    + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
+    + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
 
 [CommonJS module]: http://wiki.commonjs.org/wiki/Modules/1.1#Module_Context
 [node.js]: http://nodejs.org/
 
 This assumes that the grammar being processed
-has a production called `grammar`,
-which **XXX** probably should be fixed.
+has a production called `sentence`,
+which is the only thing that will be exported.
 
 The Whole Metacircular Compiler-Compiler
 ----------------------------------------
@@ -994,19 +1002,19 @@ extracted from this document:
                        '  return state;\n',
                     "}\n"].join(''))
                .
-    grammar <- _ r: rule g: grammar -> (r + "\n" + g)
-             / _ r: rule -> (r + "\n"
-                   + 'function parse_char(input, pos) {\n'
-                   + '  if (pos >= input.length) return null;\n'
-                   + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
-                   + '}\n'
-                   + 'function literal(input, pos, string) {\n'
-                   + '  if (input.substr(pos, string.length) == string) {\n'
-                   + '    return { pos: pos + string.length, val: string };\n'
-                   + '  } else return null;\n'
-                   + '}\n'
-                   + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
-               ).
+    sentence <- _ r: rule g: sentence -> (r + "\n" + g)
+              / _ r: rule -> (r + "\n"
+                    + 'function parse_char(input, pos) {\n'
+                    + '  if (pos >= input.length) return null;\n'
+                    + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
+                    + '}\n'
+                    + 'function literal(input, pos, string) {\n'
+                    + '  if (input.substr(pos, string.length) == string) {\n'
+                    + '    return { pos: pos + string.length, val: string };\n'
+                    + '  } else return null;\n'
+                    + '}\n'
+                    + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+                ).
     meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name     <- c: namechar n: name -> (c + n) / namechar.
     namechar <- !meta !sp char.
@@ -1055,6 +1063,8 @@ That’s 66 lines of code,
 constituting a compiler
 that can compile itself into JavaScript,
 if you have a way to execute it.
+
+**XXX: a couple of lines are over 80 chars; fix this!**
 
 Bootstrapping to JavaScript
 ---------------------------
@@ -1164,11 +1174,11 @@ because they don’t produce interesting values.
                    "}\n"].join(''));
     }
 
-    function grammar2(r, g) {
+    function sentence2(r, g) {
       return (r + "\n" + g);
     }
 
-    function grammar1(r) {
+    function sentence1(r) {
       return (r + "\n"
                    <<support code>>
                );
@@ -1221,8 +1231,8 @@ because it just returns one of its children's values.
     }
 
 We’ll also need the support code
-from the `grammar` rule,
-except for the exporting of `parse_grammar`.
+from the `sentence` rule,
+except for the exporting of `parse_sentence`.
 
     function parse_char(input, pos) {
       if (pos >= input.length) return null;
@@ -1289,16 +1299,16 @@ for a total of 20 lines for the “hand-compiled” version
 of the original 7-line `rule` rule.
 That’s a manageable expansion factor of about 3×.
 
-So, on to `grammar`.
+So, on to `sentence`.
 I’ve played fast and loose
 with leading whitespace here,
 in order to retain some modicum of readability.
 
-    var grammar_rule = rule('grammar',
+    var sentence_rule = rule('sentence',
         choice(
             nseq(nonterminal('_'),
                  labeled('r', nonterminal('rule')),
-                 labeled('g', nonterminal('grammar')),
+                 labeled('g', nonterminal('sentence')),
                  result_expression('r + "\\n" + g')),
             nseq(nonterminal('_'),
                  labeled('r', nonterminal('rule')),
@@ -1313,7 +1323,7 @@ in order to retain some modicum of readability.
             "+ '  } else return null;\\n'\n" +
             "+ '}\\n'\n" +
             "+ 'if (typeof exports !== "+'"undefined"'+") {\\n'\n" +
-            "+ '    exports.parse_grammar = parse_grammar;\\n'\n" +
+            "+ '    exports.parse_sentence = parse_sentence;\\n'\n" +
             "+ '}\\n'\n"))));
 
 The quoting of the support code
@@ -1462,35 +1472,35 @@ but also a comment.
              result_expression('body')));
 
 So that’s all the rules.
-Now we just need to assemble them into a grammar,
+Now we just need to assemble them into a sentence,
 using a technique similar to `nseq` and `nchoice`.
 
-    function ngrammar() {
-      var rv = grammar1(arguments[arguments.length-1]);
+    function nsentence() {
+      var rv = sentence1(arguments[arguments.length-1]);
       for (var ii = arguments.length-2; ii >= 0; ii--)
-        rv = grammar2(arguments[ii], rv);
+        rv = sentence2(arguments[ii], rv);
       return rv;
     }
 
-    var all_rules = ngrammar(sp_rule, __rule, rule_rule, grammar_rule, 
-                             meta_rule, name_rule, namechar_rule, term_rule,
-                             nonterminal_rule, labeled_rule, sequence_rule,
-                             string_rule, stringcontents_rule, choice_rule,
-                             negation_rule, result_expression_rule, expr_rule,
-                             inner_rule, exprcontents_rule, parenthesized_rule);
+    var all_rules = nsentence(sp_rule, __rule, rule_rule, sentence_rule, 
+                              meta_rule, name_rule, namechar_rule, term_rule,
+                              nonterminal_rule, labeled_rule, sequence_rule,
+                              string_rule, stringcontents_rule, choice_rule,
+                              negation_rule, result_expression_rule, expr_rule,
+                              inner_rule, exprcontents_rule, parenthesized_rule);
 
 Now the variable `all_rules`
 has a working parser in it
 in JavaScript.
 
-To get a usable `parse_grammar` function,
+To get a usable `parse_sentence` function,
 we need to `eval` that script:
 
     eval(all_rules);
 
 And then we can export the function:
 
-    if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;
+    if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;
 
 ### The Output Parser in JavaScript ###
 
@@ -1733,7 +1743,7 @@ Other Interesting PEGs
 
 Here’s some nifty stuff you can do
 with the one-page parser generator described above.
-**XXX these don't define a `grammar` production,
+**XXX these don't define a `sentence` production,
 so they won’t work**
 
 ### CSV files ###

@@ -8,7 +8,7 @@
 
   window.onload = function() {
       $('debug_output').value = all_rules;
-      window.parse_grammar = parse_grammar;
+      window.parse_sentence = parse_sentence;
   }
 
   function timeit(thunk) {
@@ -22,10 +22,10 @@
 
   function compile(output_id) {
       var output;
-      timeit(function() { output = parse_grammar($('grammar').value, 0).val; });
+      timeit(function() { output = parse_sentence($('grammar').value, 0).val; });
       $(output_id).value = output;
       eval(output);
-      window.parse_grammar = parse_grammar;
+      window.parse_sentence = parse_sentence;
   }
   </script>
 
@@ -47,19 +47,19 @@ rule    <- n: name _ '<-'_ body: choice '.'_ ->
                    '  return state;\n',
                 "}\n"].join(''))
            .
-grammar <- _ r: rule g: grammar -> (r + "\n" + g)
-         / _ r: rule -> (r + "\n"
-               + 'function parse_char(input, pos) {\n'
-               + '  if (pos >= input.length) return null;\n'
-               + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
-               + '}\n'
-               + 'function literal(input, pos, string) {\n'
-               + '  if (input.substr(pos, string.length) == string) {\n'
-               + '    return { pos: pos + string.length, val: string };\n'
-               + '  } else return null;\n'
-               + '}\n'
-               + "if (typeof exports !== 'undefined') exports.parse_grammar = parse_grammar;"
-           ).
+sentence <- _ r: rule g: sentence -> (r + "\n" + g)
+          / _ r: rule -> (r + "\n"
+                + 'function parse_char(input, pos) {\n'
+                + '  if (pos >= input.length) return null;\n'
+                + '  return { pos: pos + 1, val: input.charAt(pos) };\n'
+                + '}\n'
+                + 'function literal(input, pos, string) {\n'
+                + '  if (input.substr(pos, string.length) == string) {\n'
+                + '    return { pos: pos + string.length, val: string };\n'
+                + '  } else return null;\n'
+                + '}\n'
+                + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+            ).
 meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
 name     <- c: namechar n: name -> (c + n) / namechar.
 namechar <- !meta !sp char.
