@@ -1666,7 +1666,11 @@ TODO
 ----
 
 - memoization
-- performance measurement
+- performance measurement: it takes minimally 252ms to compile itself
+  on my netbook, wallclock, under whatever version of Node I’m using.
+  That's pretty pessimal; it's about 11 or 12 kilobytes per second,
+  close to a hundred thousand clock cycles per byte.  Follow sets
+  may offer a way to improve that by probably an order of magnitude.
 - profiling
 - re-add repetition `+` and `*` (in a later version)
 - factor out loopbody?  like,  
@@ -1689,6 +1693,40 @@ TODO
   the abstraction overhead that permits it.
 - maybe: rewrite this document with bootstrap.js first?  Not sure.
 - maybe: write a Markdown parser?
+
+Profiling results
+-----------------
+
+**XXX these are rough notes that should be cleaned up**
+
+I profiled this thing compiling itself in Arora.
+
+It contains 2939 characters, but makes 32370 calls to `literal`, which
+is about 25% of its CPU time, I think (the profile output is a little
+hard to interpret; some of the numbers are over 100%, probably due to
+recursion, and 85% is attributed merely to “program”).  `parse_meta`
+takes more than a third of the CPU time, largely by virtue of calling
+`literal` several times.  It also makes 41903 calls each to `push` and
+`pop`.
+
+That means it's testing about 11 literals per character, and
+backtracking 14 times.  I could be wrong but I don’t think much of
+this would be improved by memoizing; computing follow sets is likely
+to make a bigger difference by avoiding the majority of that
+backtracking.
+
+`parse_char` is called 4219 times, mostly from `parse_exprcontents`.
+
+Building up the output tree with `string.join` takes only about 0.6%
+of its time.
+
+I suspect that current WebKit has a much better profiler.
+
+Firebug agrees on most things (23.87% in `literal`), but it has the
+interesting result that actually 17% of the time is in `compile`,
+which was called only once and does little more than call `eval`.  So
+apparently the time to generate the output JS was only about 4x the
+time needed for SpiderMonkey to compile it!
 
 Other Interesting PEGs
 ----------------------
