@@ -58,7 +58,8 @@ sentence <- _ r: rule g: sentence -> (r + "\n" + g)
                 + '    return { pos: pos + string.length, val: string };\n'
                 + '  } else return null;\n'
                 + '}\n'
-                + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+                + "if (typeof exports !== 'undefined')\n"
+                + "    exports.parse_sentence = parse_sentence;\n"
             ).
 meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
 name     <- c: namechar n: name -> (c + n) / namechar.
@@ -72,8 +73,7 @@ labeled <- label: name _ ':'_ value: term ->
            .
 sequence <- foo: term  bar: sequence -> 
                    ([foo, '  if (state) {\n', bar, '  }\n'].join(''))
-               / result_expression
-               / -> ('').
+               / result_expression / -> ('').
 string <- '\'' s: stringcontents '\''_ ->
              (["  state = literal(input, state.pos, '", s, "');\n"].join(''))
           .

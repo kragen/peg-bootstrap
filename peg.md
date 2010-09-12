@@ -733,8 +733,7 @@ we execute `bar`.
     # in the metacircular compiler-compiler:
     sequence <- foo: term  bar: sequence -> 
                        <<code to handle a sequence>>
-                   / result_expression
-                   / -> ('').
+                   / result_expression / -> ('').
 
 The `result_expression` case 
 is one of the last things explained,
@@ -974,7 +973,8 @@ if our grammar is to be loadable as a [CommonJS module][]
 by systems like [node.js][]:
 
     # in support code:
-    + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+    + "if (typeof exports !== 'undefined')\n"
+    + "    exports.parse_sentence = parse_sentence;\n"
 
 [CommonJS module]: http://wiki.commonjs.org/wiki/Modules/1.1#Module_Context
 [node.js]: http://nodejs.org/
@@ -1011,7 +1011,8 @@ extracted from this document:
                     + '    return { pos: pos + string.length, val: string };\n'
                     + '  } else return null;\n'
                     + '}\n'
-                    + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+                    + "if (typeof exports !== 'undefined')\n"
+                    + "    exports.parse_sentence = parse_sentence;\n"
                 ).
     meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->'.
     name     <- c: namechar n: name -> (c + n) / namechar.
@@ -1025,8 +1026,7 @@ extracted from this document:
                .
     sequence <- foo: term  bar: sequence -> 
                        ([foo, '  if (state) {\n', bar, '  }\n'].join(''))
-                   / result_expression
-                   / -> ('').
+                   / result_expression / -> ('').
     string <- '\'' s: stringcontents '\''_ ->
                  (["  state = literal(input, state.pos, '", s, "');\n"].join(''))
               .
@@ -1679,7 +1679,6 @@ TODO
   That's pretty pessimal; it's about 11 or 12 kilobytes per second,
   close to a hundred thousand clock cycles per byte.  Follow sets
   may offer a way to improve that by probably an order of magnitude.
-- profiling
 - re-add repetition `+` and `*` (in a later version)
 - factor out loopbody?  like,  
   loopbody <- term: body -> (loop body code).  
@@ -1701,6 +1700,7 @@ TODO
   the abstraction overhead that permits it.
 - maybe: reorganize this document, putting bootstrap.js first?  Not sure.
 - maybe: write a Markdown parser?
+- move Makefile and pegcompile.js into this document?
 
 Profiling results
 -----------------

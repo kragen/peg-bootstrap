@@ -111,7 +111,8 @@ function parse_sentence(input, pos) {
                 + '    return { pos: pos + string.length, val: string };\n'
                 + '  } else return null;\n'
                 + '}\n'
-                + "if (typeof exports !== 'undefined') exports.parse_sentence = parse_sentence;"
+                + "if (typeof exports !== 'undefined')\n"
+                + "    exports.parse_sentence = parse_sentence;\n"
             ;
   }
   }
