@@ -1872,30 +1872,31 @@ and eliminates nearly all non-tail calls
 (except inside of `list`, and to `_`, and in distinguishing character categories)
 but I think it makes it a little less clear.
 
-In 17 lines,
+In 16 lines,
 we can get a real parser
 that returns a parse of the code,
 in this case as a JSON string:
 
     # in ichbins-parser.peg:
-    whitespace <- '\n' / ' ' / '\t'.
-    _          <- whitespace _ / .
-    nonsymbol  <- '"' / '\\' / '(' / '\'' / ')'.
-    sentence   <- s: top          -> (JSON.stringify(s, null, 4)).
-    top        <- _ sexp.
-    sexp       <- '\\' c: char    -> ({char: c})
-                / '"' string 
-                / '(' list 
-                / '\'' s: top     -> ([{symbol: 'quote'}, s])
-                / s: symbol       -> ({symbol: s}).
+    sentence   <- _ s: sexp       -> (JSON.stringify(s, null, 4)).
 
-    string     <- '"'             -> ('') 
-                / a: (!'\\' char
-                     / '\\' b: char -> ('\\' + b)) t: string  -> (a + t).
-    symbol     <- !whitespace !nonsymbol a: char b: symbol    -> (a + b) 
-                /                 -> ('').
-    list       <- ')'             -> ([])
-                / a: top b: list  -> ([a].concat(b)).
+    sexp       <- '('_ list 
+                / '"' string 
+                / s: symbol       -> ({symbol: s})
+                / '\''_ s: sexp   -> ([{symbol: 'quote'}, s])
+                / '\\' c: char _  -> ({char: c}).
+
+    list       <- ')'_            -> ([])
+                / a: sexp b: list -> ([a].concat(b)).
+    string     <- '"'_            -> ('') 
+                / a: (!'\\' char / '\\' b: char -> ('\\' + b)) 
+                  t: string       -> (a + t).
+    symbol     <- a: symchar b: symtail -> (a + b).
+    symtail    <- symbol / _               -> ('').
+
+    _          <- whitespace _ / .
+    whitespace <- '\n' / ' ' / '\t'.
+    symchar    <- !( whitespace /'"' / '\\' / '(' / '\'' / ')' ) char.
 
 
 [ichbins]: http://www.accesscom.com/~darius/???XXX "ichbins: I can hardly believe it’s not Scheme"
