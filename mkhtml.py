@@ -11,11 +11,12 @@ import markdown, BeautifulSoup, sys, os.path
 
 def render(text):
     "Given Markdown input as a string, produce an HTML document as a string."
-    md = markdown.Markdown(text.decode('utf-8'))
+    md = markdown.Markdown()
     try:
-        body = md.convert()
+        body = md.convert(text.decode('utf-8'))
     except AttributeError: 
         body = str(md)
+    
     soup = BeautifulSoup.BeautifulSoup(body)
 
     headers = soup('h1')
